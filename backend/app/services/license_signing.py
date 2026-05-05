@@ -14,6 +14,20 @@ from app.models.activation_nonce import ActivationNonce
 _NONCE_TTL = timedelta(minutes=5)
 _TIMESTAMP_SKEW_SECONDS = 60
 
+# Temporary rollout: omit `X-Signature` entirely to skip HMAC/timestamp/nonce checks on activate.
+# Set to False to require signing for every activation request again.
+SIGNATURE_OPTIONAL_UNTIL_CLIENTS_UPDATED = True
+
+
+def activation_signing_should_verify(signature: str | None) -> bool:
+    """
+    When this returns False, callers should skip verify_activation_request_or_reason and
+    rely on license business rules only (exists, active, not expired, device limit).
+    """
+    if not SIGNATURE_OPTIONAL_UNTIL_CLIENTS_UPDATED:
+        return True
+    return bool((signature or "").strip())
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)

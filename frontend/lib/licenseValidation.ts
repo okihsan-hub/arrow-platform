@@ -3,18 +3,30 @@ export type OfflineLicenseCache = {
   device_id: string;
   expires_at: string; // ISO datetime
   last_validated_at: string; // ISO datetime
+  /** Filled after a successful online validation (for offline shape parity). */
+  product_name?: string;
+  max_devices?: number;
+  device_count?: number;
 };
 
+/** Matches backend discriminated union (`valid` + DB-backed fields on success). */
 export type ValidationResponse =
   | {
       valid: true;
-      reason?: null;
-      product_name?: string;
+      reason: null;
+      product_name: string;
       expires_at: string;
-      max_devices?: number;
-      device_count?: number;
+      max_devices: number;
+      device_count: number;
     }
-  | { valid: false; reason: string };
+  | {
+      valid: false;
+      reason: string;
+      product_name?: null;
+      expires_at?: null;
+      max_devices?: null;
+      device_count?: null;
+    };
 
 const STORAGE_KEY = "arrow:license:last_validation_v1";
 const OFFLINE_GRACE_MS = 24 * 60 * 60 * 1000;
@@ -72,7 +84,10 @@ export async function validateWithOfflineFallback(
         license_key,
         device_id,
         expires_at: online.expires_at,
-        last_validated_at: nowIso()
+        last_validated_at: nowIso(),
+        product_name: online.product_name,
+        max_devices: online.max_devices,
+        device_count: online.device_count
       });
     }
     return online;
@@ -95,7 +110,10 @@ export async function validateWithOfflineFallback(
     return {
       valid: true,
       reason: null,
+      product_name: cached.product_name ?? "",
       expires_at: cached.expires_at,
+      max_devices: cached.max_devices ?? 0,
+      device_count: cached.device_count ?? 0,
       offline: true
     };
   }

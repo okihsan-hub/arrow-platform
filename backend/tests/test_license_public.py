@@ -123,7 +123,14 @@ def test_activate_then_validate_bound_device_valid(client: TestClient, monkeypat
         },
     )
     assert r1.status_code == 200
-    assert r1.json()["valid"] is True
+    body1 = r1.json()
+    assert body1["valid"] is True
+    assert body1["reason"] is None
+    assert body1["product_name"] == "Arrow Restaurant"
+    assert body1["max_devices"] == 1
+    assert body1["device_count"] == 1
+    exp1 = datetime.fromisoformat(str(body1["expires_at"]).replace("Z", "+00:00"))
+    assert exp1 == lic.expires_at
     assert "dev-1" in (lic.bound_devices or {})
     dev = (lic.bound_devices or {}).get("dev-1") or {}
     assert "device_name" in dev
@@ -138,9 +145,12 @@ def test_activate_then_validate_bound_device_valid(client: TestClient, monkeypat
     assert r2.status_code == 200
     body = r2.json()
     assert body["valid"] is True
+    assert body["reason"] is None
     assert body["product_name"] == "Arrow Restaurant"
     assert body["max_devices"] == 1
     assert body["device_count"] == 1
+    exp2 = datetime.fromisoformat(str(body["expires_at"]).replace("Z", "+00:00"))
+    assert exp2 == lic.expires_at
     assert any(c.get("event_type").value == "activation" and c.get("success") is True for c in calls)
 
 
@@ -174,6 +184,40 @@ def test_activate_invalid_signature(client: TestClient, monkeypatch: pytest.Monk
     body = res.json()
     assert body["valid"] is False
     assert body["reason"] == "invalid_signature"
+
+
+def test_activate_without_signature_skips_hmac(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """Temporary: no X-Signature => skip signing; only business rules apply."""
+    from app.services import rate_limit as rl
+
+    rl._reset_for_tests()
+    lic = License(
+        customer_id=1,
+        reseller_id=None,
+        product_name="Arrow Restaurant",
+        license_key="AR-TEST-TEST-TEST-TEST",
+        status=LicenseStatus.active,
+        starts_at=_future(-1),
+        expires_at=_future(30),
+        max_devices=1,
+        bound_devices={},
+    )
+
+    from app.services import licenses as licenses_service
+    from app.services import license_events as events_service
+
+    monkeypatch.setattr(licenses_service, "get_license_by_key", lambda _db, _key: lic)
+    monkeypatch.setattr(events_service, "log_license_event", lambda *a, **k: None)
+
+    res = client.post(
+        "/api/licenses/activate",
+        json={"license_key": lic.license_key, "device_id": "dev-1", "device_name": "Kasa-1", "app_version": "1.0.0"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["valid"] is True
+    assert body["product_name"] == "Arrow Restaurant"
+    assert "dev-1" in (lic.bound_devices or {})
 
 
 def test_activate_rate_limited(client: TestClient, monkeypatch: pytest.MonkeyPatch):

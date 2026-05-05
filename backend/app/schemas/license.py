@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.license import LicenseStatus
 
@@ -49,11 +50,32 @@ class LicenseValidateRequest(BaseModel):
     device_id: str
 
 
-class LicenseValidationResponse(BaseModel):
-    valid: bool
-    reason: str | None = None
-    product_name: str | None = None
-    expires_at: datetime | None = None
-    max_devices: int | None = None
-    device_count: int | None = None
+class LicenseValidationSuccess(BaseModel):
+    """Successful activation/validation: values come from the License row."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    valid: Literal[True] = True
+    reason: None = None
+    product_name: str
+    expires_at: datetime
+    max_devices: int
+    device_count: int
+
+
+class LicenseValidationFailure(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    valid: Literal[False] = False
+    reason: str
+    product_name: None = None
+    expires_at: None = None
+    max_devices: None = None
+    device_count: None = None
+
+
+LicenseValidationResponse = Annotated[
+    Union[LicenseValidationSuccess, LicenseValidationFailure],
+    Field(discriminator="valid"),
+]
 

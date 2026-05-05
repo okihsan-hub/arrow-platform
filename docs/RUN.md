@@ -57,11 +57,14 @@ npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:3000`.
+Frontend runs at `http://localhost:3000` (Tailwind, responsive). Public site: Ana Sayfa (`/`), Hizmetler (`/services`), Referanslar (`/references`), İletişim (`/contact`). Yönetici: `/login` → `/admin` (Dashboard, Licenses, Users, References, Settings yer tutucuları). Marka: **Arrow Bilişim** · **www.arrowbilisim.com**.
 
 ### License activation signing
 
-`POST /api/licenses/activate` requires request signing headers:
+`POST /api/licenses/activate`:
+
+- **Temporary:** if **`X-Signature` is omitted**, HMAC/timestamp/nonce checks are skipped; only license business rules apply (exists, active, not expired, device limit).
+- If **`X-Signature` is sent**, the following headers are required and fully validated:
 
 - `X-Timestamp` (unix seconds)
 - `X-Nonce` (unique, cannot repeat within 5 minutes)
@@ -78,6 +81,21 @@ Rules:
 - timestamp within ±60 seconds
 - nonce cannot repeat within 5 minutes
 - invalid signature returns `reason: "invalid_signature"`
+
+Successful **activate** and **validate** responses use the **license row** from the database (not OpenAPI examples):
+
+```json
+{
+  "valid": true,
+  "reason": null,
+  "product_name": "Arrow Restaurant",
+  "expires_at": "<ISO from DB>",
+  "max_devices": 1,
+  "device_count": 1
+}
+```
+
+On failure, `valid` is `false` and `reason` is set (other fields are `null`).
 
 ### Offline validation fallback (client-side)
 

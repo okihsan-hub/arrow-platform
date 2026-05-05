@@ -7,16 +7,24 @@ from app.core.db import get_db
 from app.schemas.license import (
     LicenseActivateRequest,
     LicenseValidateRequest,
+    LicenseValidationFailure,
     LicenseValidationResponse,
+    LicenseValidationSuccess,
 )
 from app.models.license_event import LicenseEventType
 from app.services import license_events
-from app.services.license_signing import verify_activation_request_or_reason
+from app.services.license_signing import activation_signing_should_verify, verify_activation_request_or_reason
 from app.services.licenses import activate_license, validate_license_strict
 from app.services.rate_limit import allow_activation
 
 
 router = APIRouter(prefix="/licenses", tags=["licenses-public"])
+
+
+def _device_count_dict(bound_devices: object) -> int:
+    if isinstance(bound_devices, dict):
+        return len(bound_devices)
+    return 0
 
 
 @router.post("/activate", response_model=LicenseValidationResponse)
@@ -39,27 +47,29 @@ def public_activate_license(
             success=False,
             reason="rate_limited",
         )
-        return LicenseValidationResponse(valid=False, reason="rate_limited")
+        return LicenseValidationFailure(reason="rate_limited")
 
-    reason = verify_activation_request_or_reason(
-        db,
-        license_key=payload.license_key,
-        device_id=payload.device_id,
-        timestamp=x_timestamp,
-        nonce=x_nonce,
-        signature=x_signature,
-    )
-    if reason:
-        license_events.log_license_event(
+    reason: str | None = None
+    if activation_signing_should_verify(x_signature):
+        reason = verify_activation_request_or_reason(
             db,
-            event_type=LicenseEventType.activation,
             license_key=payload.license_key,
             device_id=payload.device_id,
-            ip=ip,
-            success=False,
-            reason=reason,
+            timestamp=x_timestamp,
+            nonce=x_nonce,
+            signature=x_signature,
         )
-        return LicenseValidationResponse(valid=False, reason=reason)
+        if reason:
+            license_events.log_license_event(
+                db,
+                event_type=LicenseEventType.activation,
+                license_key=payload.license_key,
+                device_id=payload.device_id,
+                ip=ip,
+                success=False,
+                reason=reason,
+            )
+            return LicenseValidationFailure(reason=reason or "invalid_signature")
 
     platform = request.headers.get("user-agent")
 
@@ -82,7 +92,7 @@ def public_activate_license(
             success=False,
             reason=reason,
         )
-        return LicenseValidationResponse(valid=False, reason=reason)
+        return LicenseValidationFailure(reason=reason or "activation_failed")
 
     license_events.log_license_event(
         db,
@@ -93,12 +103,11 @@ def public_activate_license(
         success=True,
         reason=None,
     )
-    return LicenseValidationResponse(
-        valid=True,
+    return LicenseValidationSuccess(
         product_name=lic.product_name,
         expires_at=lic.expires_at,
         max_devices=lic.max_devices,
-        device_count=len(lic.bound_devices or {}),
+        device_count=_device_count_dict(lic.bound_devices),
     )
 
 
@@ -116,13 +125,12 @@ def public_validate_license(payload: LicenseValidateRequest, db: Session = Depen
             success=False,
             reason=reason,
         )
-        return LicenseValidationResponse(valid=False, reason=reason)
+        return LicenseValidationFailure(reason=reason or "validation_failed")
 
-    return LicenseValidationResponse(
-        valid=True,
+    return LicenseValidationSuccess(
         product_name=lic.product_name,
         expires_at=lic.expires_at,
         max_devices=lic.max_devices,
-        device_count=len(lic.bound_devices or {}),
+        device_count=_device_count_dict(lic.bound_devices),
     )
 
