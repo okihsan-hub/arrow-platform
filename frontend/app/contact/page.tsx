@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ContactForm } from "@/components/contact/ContactForm";
-import { WhatsAppPlaceholder } from "@/components/contact/WhatsAppPlaceholder";
+import { ContactWhatsAppLink } from "@/components/contact/ContactWhatsAppLink";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "İletişim",
   description:
-    "Arrow Bilişim ile iletişim: proje talebi, teklif ve destek için form ve iletişim bilgileri. Kurumsal teknoloji ortağınıza yazın.",
+    "Arrow Bilişim demo talebi ve iletişim: sisteminizi birlikte kuralım. Form, WhatsApp veya e-posta ile ulaşın.",
   path: "/contact",
   keywords: ["iletişim", "teklif", "Arrow Bilişim iletişim", "kurumsal yazılım destek"]
 });
@@ -25,10 +25,31 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
     <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
       <header className="max-w-3xl">
         <p className="text-sm font-medium uppercase tracking-wider text-corporate-accent">İletişim</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Bize ulaşın</h1>
-        <p className="mt-4 text-base leading-relaxed text-slate-400">
-          Proje talebi, teknik soru veya ortaklık için formu doldurun; ekibimiz en kısa sürede dönüş yapar. Acil kanallar için
-          aşağıdaki yer tutucu bilgileri kullanabilirsiniz (kurumsal bilgiler yayına alındığında güncellenecektir).
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl lg:text-[2.375rem] lg:leading-tight">
+          Demo talep edin, sisteminizi birlikte kuralım
+        </h1>
+        <div
+          className="mt-6 flex gap-3 rounded-xl border border-corporate-accent/35 bg-corporate-accent/[0.08] px-4 py-3.5 md:px-5"
+          role="note"
+        >
+          <span
+            className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-corporate-accent/25 text-corporate-accent"
+            aria-hidden
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </span>
+          <p className="text-sm font-semibold leading-snug text-slate-100 md:text-[15px]">
+            Demo sonrası 24 saat içinde kurulum yapılabilir
+          </p>
+        </div>
+        <p className="mt-5 text-base leading-relaxed text-slate-400">
+          Aşağıdan demo talebinizi iletin veya doğrudan WhatsApp ile yazın; ekibimiz en kısa sürede dönüş yapar.
         </p>
       </header>
 
@@ -69,7 +90,10 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
           </ul>
 
           <div className="mt-8">
-            <WhatsAppPlaceholder />
+            <h3 className="text-xs font-medium uppercase tracking-wide text-slate-500">WhatsApp</h3>
+            <div className="mt-3">
+              <ContactWhatsAppLink />
+            </div>
           </div>
 
           <div className="mt-10">
@@ -91,6 +115,18 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
             </p>
             <div className="mt-8">
               <ContactForm defaultSubject={defaultSubject} />
+            </div>
+
+            <div className="mt-10">
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-slate-800" aria-hidden />
+                <span className="shrink-0 text-xs font-medium uppercase tracking-wider text-slate-500">veya</span>
+                <div className="h-px flex-1 bg-slate-800" aria-hidden />
+              </div>
+              <p className="mt-6 text-center text-sm text-slate-400">Form yerine anında mesaj göndermek için</p>
+              <div className="mt-3">
+                <ContactWhatsAppLink emphasis />
+              </div>
             </div>
           </div>
 

@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import type { ReferenceFilterId } from "@/data/references-content";
 import { referenceFilters, referenceItems } from "@/data/references-content";
 
+const ACTIVE_PROJECT_BADGE = "Aktif kullanımda";
+
 function ImagePlaceholder({ label }: { label: string }) {
   return (
     <div className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border border-slate-700/80 bg-gradient-to-br from-slate-800/90 via-slate-900 to-corporate-950">
@@ -15,6 +17,9 @@ function ImagePlaceholder({ label }: { label: string }) {
         </span>
         <span className="text-xs font-medium text-slate-400">{label}</span>
       </div>
+      <span className="absolute right-3 top-3 rounded-full border border-emerald-500/50 bg-emerald-950/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300 shadow-lg">
+        {ACTIVE_PROJECT_BADGE}
+      </span>
     </div>
   );
 }
@@ -73,7 +78,32 @@ export function ReferencesWithFilters() {
                 </div>
                 <div className="flex flex-1 flex-col p-5 pt-4">
                   <h2 className="text-lg font-semibold leading-snug text-white">{ref.name}</h2>
+                  <p className="mt-2 text-xs font-medium text-slate-500">{ref.location}</p>
+
+                  <div className="mt-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Kullanılan modüller:
+                    </p>
+                    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Kullanılan modüller">
+                      {ref.modules.map((mod) => (
+                        <li key={mod}>
+                          <span className="inline-flex rounded-md border border-corporate-accent/35 bg-corporate-accent/10 px-2 py-1 text-[11px] font-bold tracking-wide text-blue-100">
+                            {mod}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">{ref.description}</p>
+
+                  <div className="mt-4 rounded-lg border border-emerald-800/40 bg-emerald-950/25 px-3 py-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Sonuç:</p>
+                    <p className="mt-1.5 text-sm font-semibold leading-relaxed text-emerald-300 drop-shadow-sm">
+                      {ref.outcome}
+                    </p>
+                  </div>
+
                   <ul className="mt-4 flex flex-wrap gap-2" aria-label="Etiketler">
                     {ref.tags.map((tag) => (
                       <li key={tag}>

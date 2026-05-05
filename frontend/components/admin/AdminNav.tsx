@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { BrandLogo } from "@/components/site/BrandLogo";
+
 const items = [
   { href: "/admin", label: "Dashboard", exact: true },
   { href: "/admin/licenses", label: "Licenses" },
@@ -17,9 +19,13 @@ export function AdminNav() {
   return (
     <aside className="border-b border-slate-800 bg-slate-900 md:w-56 md:flex-shrink-0 md:border-b-0 md:border-r md:border-slate-800">
       <div className="flex flex-col gap-1 p-4">
-        <Link href="/" className="mb-4 text-sm font-semibold text-white">
-          Arrow Bilişim
-          <span className="mt-0.5 block text-xs font-normal text-slate-500">Admin</span>
+        <Link
+          href="/"
+          className="mb-4 flex flex-col gap-1 border-b border-slate-800/80 pb-4"
+          aria-label="Arrow Bilişim — siteye dön"
+        >
+          <BrandLogo preset="admin" />
+          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Admin</span>
         </Link>
         <nav className="flex flex-row flex-wrap gap-1 md:flex-col">
           {items.map((item) => {

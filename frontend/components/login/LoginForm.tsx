@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { BrandLogo } from "@/components/site/BrandLogo";
+
 export function LoginForm() {
   const search = useSearchParams();
   const next = search.get("next") || "/dashboard";
@@ -36,6 +38,9 @@ export function LoginForm() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
+      <div className="mb-8 flex w-full justify-center">
+        <BrandLogo preset="login" href="/" priority />
+      </div>
       <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-8">
         <h1 className="text-xl font-semibold text-white">Giriş</h1>
         <p className="mt-2 text-sm text-slate-400">

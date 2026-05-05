@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { HomeFeatures } from "@/components/site/home/HomeFeatures";
 import { HomeFinalCta } from "@/components/site/home/HomeFinalCta";
 import { HomeHero } from "@/components/site/home/HomeHero";
+import { HomePricingPreview } from "@/components/site/home/HomePricingPreview";
 import { HomeReferencesPreview } from "@/components/site/home/HomeReferencesPreview";
 import { HomeWhyUs } from "@/components/site/home/HomeWhyUs";
 import { buildPageMetadata } from "@/lib/seo";
@@ -29,6 +30,7 @@ export default function HomePage() {
       <HomeFeatures />
       <HomeWhyUs />
       <HomeReferencesPreview />
+      <HomePricingPreview />
       <HomeFinalCta />
     </div>
   );

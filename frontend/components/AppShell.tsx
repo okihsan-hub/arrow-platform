@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { BrandMark } from "@/components/site/BrandMark";
+import { BrandLogo } from "@/components/site/BrandLogo";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { WhatsAppFloatingButton } from "@/components/site/WhatsAppFloatingButton";
 
 const MARKETING_PATHS = new Set(["/", "/services", "/references", "/contact"]);
 
@@ -25,6 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
+        <WhatsAppFloatingButton />
       </div>
     );
   }
@@ -32,10 +34,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-corporate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2.5">
-            <BrandMark className="h-8 w-8" />
-            <span className="text-sm font-semibold tracking-tight text-white">Arrow Bilişim</span>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
+          <Link href="/" className="flex items-center" aria-label="Arrow Bilişim — ana sayfa">
+            <BrandLogo preset="header" />
           </Link>
           <nav className="flex items-center gap-4 text-sm text-slate-400">
             <Link href="/" className="rounded-md px-2 py-1 transition hover:bg-slate-800 hover:text-white">
@@ -51,6 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="flex-1">{children}</main>
+      <WhatsAppFloatingButton />
     </div>
   );
 }

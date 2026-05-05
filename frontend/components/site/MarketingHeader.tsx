@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
-import { BrandMark } from "@/components/site/BrandMark";
+import { BrandLogo } from "@/components/site/BrandLogo";
 import { marketingNavLinkClass } from "@/components/site/marketing-nav-classes";
 import { isNavActive, marketingNav } from "@/data/site-nav";
 
@@ -37,13 +37,14 @@ export function MarketingHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/90">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 md:py-4">
-        <Link href="/" className="flex min-w-0 shrink items-center gap-3" onClick={() => setOpen(false)}>
-          <BrandMark />
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-lg font-semibold tracking-tight text-white">Arrow Bilişim</span>
-            <span className="truncate text-xs text-slate-500 sm:max-w-none">www.arrowbilisim.com</span>
-          </span>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5 md:py-3">
+        <Link
+          href="/"
+          className="flex min-w-0 shrink items-center"
+          onClick={() => setOpen(false)}
+          aria-label="Arrow Bilişim — ana sayfa"
+        >
+          <BrandLogo preset="header" priority />
         </Link>
 
         <div className="hidden items-center gap-2 md:flex">
