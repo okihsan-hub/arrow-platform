@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type FormStatus = "idle" | "submitting" | "sent" | "error";
 
-export function ContactForm() {
+export function ContactForm({ defaultSubject }: { defaultSubject?: string }) {
   const [status, setStatus] = useState<FormStatus>("idle");
 
   const busy = status === "submitting";
@@ -89,6 +89,7 @@ export function ContactForm() {
           name="subject"
           required
           disabled={sent || busy}
+          defaultValue={defaultSubject}
           className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-corporate-accent focus:outline-none focus:ring-1 focus:ring-corporate-accent disabled:opacity-50"
           placeholder="Örn. Restoran otomasyonu teklifi"
         />

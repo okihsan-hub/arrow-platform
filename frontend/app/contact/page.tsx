@@ -13,7 +13,14 @@ export const metadata: Metadata = buildPageMetadata({
   keywords: ["iletişim", "teklif", "Arrow Bilişim iletişim", "kurumsal yazılım destek"]
 });
 
-export default function ContactPage() {
+type ContactPageProps = {
+  searchParams?: Promise<{ konu?: string }>;
+};
+
+export default async function ContactPage({ searchParams }: ContactPageProps) {
+  const q = (await searchParams) ?? {};
+  const defaultSubject = q.konu === "demo-talebi" ? "Demo talebi — restoran otomasyonu" : undefined;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
       <header className="max-w-3xl">
@@ -83,7 +90,7 @@ export default function ContactPage() {
               form kullanılabilir.
             </p>
             <div className="mt-8">
-              <ContactForm />
+              <ContactForm defaultSubject={defaultSubject} />
             </div>
           </div>
 
