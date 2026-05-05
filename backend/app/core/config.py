@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     jwt_access_token_expires_minutes: int = 15
     jwt_refresh_token_expires_days: int = 30
 
+    license_signing_secret_key: str | None = None
+
     backend_cors_origins: str = "http://localhost:3000"
     bcrypt_rounds: int = 12
 

@@ -36,3 +36,24 @@ class LicensePublic(BaseModel):
 class LicenseStatusUpdate(BaseModel):
     status: LicenseStatus
 
+
+class LicenseActivateRequest(BaseModel):
+    license_key: str
+    device_id: str
+    device_name: str
+    app_version: str
+
+
+class LicenseValidateRequest(BaseModel):
+    license_key: str
+    device_id: str
+
+
+class LicenseValidationResponse(BaseModel):
+    valid: bool
+    reason: str | None = None
+    product_name: str | None = None
+    expires_at: datetime | None = None
+    max_devices: int | None = None
+    device_count: int | None = None
+
