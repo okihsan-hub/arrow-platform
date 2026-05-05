@@ -1,14 +1,37 @@
-node\_modules/
+## PROJECT_BRIEF (source of truth)
 
-.env
+Goal: production-ready monorepo for Arrow Platform.
 
-\_\_pycache\_\_/
+### Structure
 
-\*.pyc
+- `backend/`: FastAPI API
+- `frontend/`: Next.js (App Router)
+- `docs/`: documentation
 
-dist/
+### Backend requirements
 
-build/
+- FastAPI project structure: routers, models, schemas, services
+- PostgreSQL with SQLAlchemy
+- Alembic migrations
+- JWT authentication (access + refresh)
+- RBAC roles: admin, reseller, customer
+- `.env` configuration system
 
-.next/
+### Frontend requirements
+
+- Next.js App Router
+- Basic layout + login page
+- Protected routes by role
+- Simple admin dashboard (no heavy UI)
+
+### Dev requirements
+
+- `docker-compose` for PostgreSQL
+- Clear run instructions
+
+### Repo ignore rules (apply via `.gitignore`)
+
+- `node_modules/`, `.next/`, `dist/`, `build/`
+- `.env`, `.env.*`
+- `__pycache__/`, `*.pyc`
 
