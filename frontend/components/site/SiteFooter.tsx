@@ -1,19 +1,48 @@
 import Link from "next/link";
 
+import { BrandMark } from "@/components/site/BrandMark";
+import { FooterNav } from "@/components/site/FooterNav";
+
 export function SiteFooter() {
   return (
-    <footer className="border-t border-slate-800 bg-slate-950">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-white">Arrow Bilişim</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Kurumsal teknoloji ve yazılım çözümleri ·{" "}
-            <Link href="https://www.arrowbilisim.com" className="text-slate-400 hover:text-white">
-              www.arrowbilisim.com
-            </Link>
-          </p>
+    <footer className="border-t border-slate-800 bg-slate-900">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-12 md:gap-8">
+        <div className="flex gap-4 md:col-span-5">
+          <BrandMark className="h-11 w-11 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-white">Arrow Bilişim</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              Yazılım, otomasyon ve teknoloji çözümleri. Kurumsal web, restoran otomasyonu, lisans ve entegrasyon.
+            </p>
+            <p className="mt-4 text-xs text-slate-500">
+              <Link href="https://www.arrowbilisim.com" className="text-corporate-accent/90 hover:underline">
+                www.arrowbilisim.com
+              </Link>
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-slate-600">© {new Date().getFullYear()} Arrow Bilişim. Tüm hakları saklıdır.</p>
+
+        <div className="md:col-span-4">
+          <FooterNav />
+        </div>
+
+        <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-5 md:col-span-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">İletişim</p>
+          <p className="mt-3 text-sm text-slate-400">Teklif ve destek talepleri için iletişim formumuzu kullanın.</p>
+          <Link
+            href="/contact"
+            className="mt-4 inline-flex rounded-md bg-corporate-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-corporate-accent-hover"
+          >
+            Bize yazın
+          </Link>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-800/80 bg-slate-950/40">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-600">© {new Date().getFullYear()} Arrow Bilişim. Tüm hakları saklıdır.</p>
+          <p className="text-xs text-slate-600">Kurumsal görünüm; yönetim paneli ile aynı renk ve tipografi ailesi.</p>
+        </div>
       </div>
     </footer>
   );

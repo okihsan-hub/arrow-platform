@@ -21,6 +21,12 @@ export async function POST(req: Request) {
     return NextResponse.json(data || { detail: "Failed" }, { status: res.status });
   }
 
+  const wantsJson = req.headers.get("accept")?.includes("application/json");
+  if (wantsJson) {
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data);
+  }
+
   return NextResponse.redirect(new URL("/admin/licenses", req.url), { status: 303 });
 }
 

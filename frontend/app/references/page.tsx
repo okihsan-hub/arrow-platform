@@ -1,36 +1,33 @@
-export const metadata = { title: "Referanslar" };
+import type { Metadata } from "next";
+import Link from "next/link";
 
-const samples = [
-  { name: "Örnek A.Ş.", sector: "Perakende", note: "Kurumsal portal ve raporlama altyapısı." },
-  { name: "Demo Lojistik", sector: "Lojistik", note: "Operasyon takip paneli ve API entegrasyonları." },
-  { name: "Sample Hotel Group", sector: "Turizm / Restoran", note: "Şube bazlı yazılım lisans süreçleri." },
-  { name: "Tech Partner Ltd.", sector: "Teknoloji", note: "Güvenli kimlik doğrulama ve yönetim konsolu." },
-  { name: "Metro Enerji", sector: "Enerji", note: "Saha verisi toplama ve izleme." },
-  { name: "Anadolu Üretim", sector: "İmalat", note: "ERP köprüleme ve bildirim servisleri." }
-];
+import { ReferencesWithFilters } from "@/components/site/ReferencesWithFilters";
+import { buildPageMetadata } from "@/lib/seo";
 
+export const metadata: Metadata = buildPageMetadata({
+  title: "Referanslar",
+  description:
+    "Arrow Bilişim referans projeleri: restoran zincirleri, otomasyon, perakende ve kurumsal portal çözümleri.",
+  path: "/references",
+  keywords: ["referans projeler", "otomasyon", "restoran yazılımı", "kurumsal portal", "lojistik entegrasyon"]
+});
 export default function ReferencesPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-      <h1 className="text-3xl font-semibold tracking-tight text-white">Referanslar</h1>
-      <p className="mt-3 max-w-2xl text-slate-400">
-        Arrow Bilişim ile çalışan kurumların bir kısmı (örnek kartlar — gerçek referans içeriği ileride
-        güncellenebilir).
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+      <header className="max-w-3xl">
+        <p className="text-sm font-medium uppercase tracking-wider text-corporate-accent">Projeler</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Referanslar</h1>
+        <p className="mt-4 text-base leading-relaxed text-slate-400">
+          Aşağıda, farklı sektörlerde teslim ettiğimiz çözümlerden örnekler yer alıyor. Kategoriye göre süzebilir; detay veya benzer
+          bir proje için{" "}
+          <Link href="/contact" className="text-corporate-accent underline-offset-2 hover:underline">
+            iletişim
+          </Link>{" "}
+          sayfamızdan yazabilirsiniz.
+        </p>
+      </header>
 
-      <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {samples.map((c) => (
-          <li
-            key={c.name}
-            className="flex flex-col rounded-lg border border-slate-800 bg-slate-900/40 p-6 transition hover:border-slate-700"
-          >
-            <span className="text-xs font-medium uppercase tracking-wide text-corporate-accent">{c.sector}</span>
-            <h2 className="mt-2 text-lg font-semibold text-white">{c.name}</h2>
-            <p className="mt-3 flex-1 text-sm text-slate-400">{c.note}</p>
-            <span className="mt-4 text-xs text-slate-600">www.arrowbilisim.com</span>
-          </li>
-        ))}
-      </ul>
+      <ReferencesWithFilters />
     </div>
   );
 }
