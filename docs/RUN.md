@@ -33,6 +33,22 @@ uvicorn app.main:app --reload
 
 Backend runs at `http://localhost:8000` and docs at `http://localhost:8000/docs`.
 
+### Auth: JSON login (Swagger / API)
+
+`POST /api/auth/login` expects **JSON** (`application/json`):
+
+```json
+{ "email": "admin@example.com", "password": "123456" }
+```
+
+Response:
+
+```json
+{ "access_token": "...", "refresh_token": "...", "token_type": "bearer" }
+```
+
+Protected routes use **HTTP Bearer**: in Swagger, use **Authorize** and paste only the `access_token` value (not `Bearer ` prefix if the UI adds it for you).
+
 ### 4) Frontend (Next.js)
 
 ```bash
