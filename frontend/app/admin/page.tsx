@@ -17,7 +17,9 @@ export default async function AdminPage() {
   return (
     <div className="card">
       <h2 style={{ marginTop: 0 }}>Admin</h2>
-      <p className="muted">Simple dashboard: list users.</p>
+      <p className="muted">
+        Simple dashboard: <Link href="/admin/licenses">Licenses</Link> + users.
+      </p>
       {users ? (
         <div style={{ display: "grid", gap: 10 }}>
           {users.map((u) => (
