@@ -1,5 +1,5 @@
 /**
- * Builds app/icon.png and app/apple-icon.png from public/brand/logo.png.
+ * Builds app/icon.png and app/apple-icon.png from public/logo-icon.png (text-free mark).
  * Run: npm run icons
  */
 import { readFile, mkdir } from "node:fs/promises";
@@ -10,7 +10,7 @@ import sharp from "sharp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const logoPath = join(root, "public", "brand", "logo.png");
+const logoPath = join(root, "public", "logo-icon.png");
 const appDir = join(root, "app");
 
 /** bg-corporate-950 */

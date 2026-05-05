@@ -6,21 +6,25 @@ import { useState } from "react";
 
 export type BrandLogoPreset = "header" | "footer" | "login" | "admin";
 
-const LOGO_SRC = "/brand/logo.png";
-/** Layout box for `next/image`; asset is ~horizontal (≈2:1). */
-const INTRINSIC_W = 640;
-const INTRINSIC_H = 320;
+/** Processed web assets: full wordmark + icon-only mark (no text). */
+const ASSET: Record<BrandLogoPreset, { src: string; w: number; h: number }> = {
+  header: { src: "/logo.png", w: 1000, h: 797 },
+  footer: { src: "/logo.png", w: 1000, h: 797 },
+  login: { src: "/logo.png", w: 1000, h: 797 },
+  admin: { src: "/logo-icon.png", w: 532, h: 797 }
+};
 
 const PRESET_CLASS: Record<BrandLogoPreset, string> = {
-  /** ~110–130px wide; height follows aspect ratio */
-  header: "h-auto w-[min(128px,calc(100vw-5rem))] min-w-0",
+  /** Mobile 120px · md 160px · lg 180px; minimal shadow for dark header */
+  header:
+    "h-auto min-w-0 w-[min(120px,calc(100vw-5rem))] md:w-[160px] lg:w-[180px] drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]",
   footer: "h-auto max-h-8 w-auto max-w-[170px] sm:max-h-9 sm:max-w-[190px]",
   login: "h-auto w-[min(140px,90vw)]",
   admin: "h-auto w-[120px]"
 };
 
 const SIZES: Record<BrandLogoPreset, string> = {
-  header: "(max-width: 640px) 120px, 130px",
+  header: "(max-width: 767px) 120px, (max-width: 1023px) 160px, 180px",
   footer: "(max-width: 768px) 140px, 180px",
   login: "140px",
   admin: "120px"
@@ -39,6 +43,7 @@ type BrandLogoProps = {
 export function BrandLogo({ preset, href, className = "", priority }: BrandLogoProps) {
   const [broken, setBroken] = useState(false);
   const align = preset === "login" ? "object-center" : "object-left";
+  const { src, w: iw, h: ih } = ASSET[preset];
 
   const content = broken ? (
     <span
@@ -50,10 +55,10 @@ export function BrandLogo({ preset, href, className = "", priority }: BrandLogoP
     </span>
   ) : (
     <Image
-      src={LOGO_SRC}
+      src={src}
       alt="Arrow Bilişim"
-      width={INTRINSIC_W}
-      height={INTRINSIC_H}
+      width={iw}
+      height={ih}
       priority={priority ?? false}
       quality={90}
       sizes={SIZES[preset]}
