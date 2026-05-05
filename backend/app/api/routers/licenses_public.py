@@ -13,6 +13,7 @@ from app.models.license_event import LicenseEventType
 from app.services import license_events
 from app.services.license_signing import verify_activation_request_or_reason
 from app.services.licenses import activate_license, validate_license_strict
+from app.services.rate_limit import allow_activation
 
 
 router = APIRouter(prefix="/licenses", tags=["licenses-public"])
@@ -27,6 +28,19 @@ def public_activate_license(
     x_nonce: str | None = Header(default=None, alias="X-Nonce"),
     x_signature: str | None = Header(default=None, alias="X-Signature"),
 ) -> LicenseValidationResponse:
+    ip = request.client.host if request.client else None
+    if not allow_activation(ip):
+        license_events.log_license_event(
+            db,
+            event_type=LicenseEventType.activation,
+            license_key=payload.license_key,
+            device_id=payload.device_id,
+            ip=ip,
+            success=False,
+            reason="rate_limited",
+        )
+        return LicenseValidationResponse(valid=False, reason="rate_limited")
+
     reason = verify_activation_request_or_reason(
         db,
         license_key=payload.license_key,
@@ -36,7 +50,6 @@ def public_activate_license(
         signature=x_signature,
     )
     if reason:
-        ip = request.client.host if request.client else None
         license_events.log_license_event(
             db,
             event_type=LicenseEventType.activation,
@@ -48,7 +61,6 @@ def public_activate_license(
         )
         return LicenseValidationResponse(valid=False, reason=reason)
 
-    ip = request.client.host if request.client else None
     platform = request.headers.get("user-agent")
 
     ok, reason, lic = activate_license(

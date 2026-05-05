@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_roles
 from app.core.db import get_db
 from app.models.license import LicenseStatus
+from app.models.license_event import LicenseEventType
 from app.models.user import User, UserRole
 from app.schemas.license import LicenseCreate, LicensePublic, LicenseStatusUpdate
-from app.services.licenses import create_license, get_license, list_licenses, set_license_status
+from app.services import license_events
+from app.services.licenses import create_license, get_license, list_licenses, reset_license_devices, set_license_status
 
 
 router = APIRouter(prefix="/admin/licenses", tags=["licenses-admin"])
@@ -65,5 +67,27 @@ def admin_update_license_status(
     lic = set_license_status(db, license_id, payload.status)
     if not lic:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="License not found")
+    return lic
+
+
+@router.post("/{license_id}/reset-devices", response_model=LicensePublic)
+def admin_reset_devices(
+    license_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_roles(UserRole.admin)),
+) -> LicensePublic:
+    lic = reset_license_devices(db, license_id)
+    if not lic:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="License not found")
+
+    license_events.log_license_event(
+        db,
+        event_type=LicenseEventType.admin_reset_devices,
+        license_key=lic.license_key,
+        device_id="admin",
+        ip=None,
+        success=True,
+        reason="reset_devices",
+    )
     return lic
 

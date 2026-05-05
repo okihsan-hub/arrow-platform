@@ -175,3 +175,49 @@ def test_activate_invalid_signature(client: TestClient, monkeypatch: pytest.Monk
     assert body["valid"] is False
     assert body["reason"] == "invalid_signature"
 
+
+def test_activate_rate_limited(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    lic = License(
+        customer_id=1,
+        reseller_id=None,
+        product_name="Arrow Restaurant",
+        license_key="AR-TEST-TEST-TEST-TEST",
+        status=LicenseStatus.active,
+        starts_at=_future(-1),
+        expires_at=_future(30),
+        max_devices=100,
+        bound_devices={},
+    )
+
+    from app.services import licenses as licenses_service
+    from app.services import license_signing as signing_service
+    from app.services import rate_limit as rl
+
+    rl._reset_for_tests()
+    monkeypatch.setattr(licenses_service, "get_license_by_key", lambda _db, _key: lic)
+    monkeypatch.setattr(signing_service, "_consume_nonce", lambda _db, _n: True)
+
+    ts = str(int(datetime.now(timezone.utc).timestamp()))
+    # Each request needs a different nonce to pass replay check (until rate limit hits)
+    for i in range(10):
+        nonce = f"n{i}"
+        sig = _sign(secret="test-signing-secret", license_key=lic.license_key, device_id="dev-1", timestamp=ts, nonce=nonce)
+        res = client.post(
+            "/api/licenses/activate",
+            json={"license_key": lic.license_key, "device_id": "dev-1", "device_name": "Kasa-1", "app_version": "1.0.0"},
+            headers={"X-Timestamp": ts, "X-Nonce": nonce, "X-Signature": sig},
+        )
+        assert res.status_code == 200
+
+    # 11th should be limited
+    nonce = "n10"
+    sig = _sign(secret="test-signing-secret", license_key=lic.license_key, device_id="dev-1", timestamp=ts, nonce=nonce)
+    res = client.post(
+        "/api/licenses/activate",
+        json={"license_key": lic.license_key, "device_id": "dev-1", "device_name": "Kasa-1", "app_version": "1.0.0"},
+        headers={"X-Timestamp": ts, "X-Nonce": nonce, "X-Signature": sig},
+    )
+    body = res.json()
+    assert body["valid"] is False
+    assert body["reason"] == "rate_limited"
+

@@ -61,7 +61,7 @@ def verify_activation_request_or_reason(
     Spec-required reason for signature failures: "invalid_signature".
     """
     settings = get_settings()
-    secret = settings.license_signing_secret_key
+    secret = settings.license_signing_secret
     if not secret:
         # If not configured, fail closed for production safety.
         return "invalid_signature"

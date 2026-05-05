@@ -42,3 +42,32 @@ npm run dev
 ```
 
 Frontend runs at `http://localhost:3000`.
+
+### License activation signing
+
+`POST /api/licenses/activate` requires request signing headers:
+
+- `X-Timestamp` (unix seconds)
+- `X-Nonce` (unique, cannot repeat within 5 minutes)
+- `X-Signature` (hex)
+
+Signature:
+
+\[
+\text{HMAC\_SHA256}(\text{LICENSE\_SIGNING\_SECRET},\; license\_key + device\_id + timestamp + nonce)
+\]
+
+Rules:
+
+- timestamp within ±60 seconds
+- nonce cannot repeat within 5 minutes
+- invalid signature returns `reason: "invalid_signature"`
+
+### Offline validation fallback (client-side)
+
+If you have a client app that calls the license API, you can use `frontend/lib/licenseValidation.ts`:
+
+- Caches last successful validation locally (`localStorage`)
+- If server is unreachable, allows usage for up to **24 hours** since last validation
+- Blocks usage after that
+- **Activation never works offline**

@@ -62,6 +62,17 @@ def set_license_status(db: Session, license_id: int, status: LicenseStatus) -> L
     return lic
 
 
+def reset_license_devices(db: Session, license_id: int) -> License | None:
+    lic = db.get(License, license_id)
+    if not lic:
+        return None
+    lic.bound_devices = {}
+    db.add(lic)
+    db.commit()
+    db.refresh(lic)
+    return lic
+
+
 def list_customer_licenses(db: Session, customer_id: int) -> list[License]:
     return list(db.scalars(select(License).where(License.customer_id == customer_id).order_by(License.id.desc())).all())
 

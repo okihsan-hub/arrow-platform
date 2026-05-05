@@ -89,6 +89,12 @@ export default async function AdminLicensesPage() {
                     Update status
                   </button>
                 </form>
+                <form action="/api/admin/licenses/reset-devices" method="post" className="row">
+                  <input type="hidden" name="license_id" value={String(l.id)} />
+                  <button className="button" type="submit">
+                    Reset devices
+                  </button>
+                </form>
               </div>
             </div>
           ))

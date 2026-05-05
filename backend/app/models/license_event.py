@@ -12,6 +12,7 @@ from app.core.db import Base
 class LicenseEventType(str, enum.Enum):
     activation = "activation"
     validation = "validation"
+    admin_reset_devices = "admin_reset_devices"
 
 
 class LicenseEvent(Base):
