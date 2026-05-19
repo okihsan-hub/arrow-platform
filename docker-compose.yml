@@ -1,21 +1,43 @@
 services:
   db:
     image: postgres:16
-    container_name: arrow_platform_db
+    container_name: arrow_license_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-arrow_platform}
+      POSTGRES_DB: ${POSTGRES_DB:-arrow_license}
       POSTGRES_USER: ${POSTGRES_USER:-arrow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arrow}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - arrow_platform_pgdata:/var/lib/postgresql/data
+      - arrow_license_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: arrow_license_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-arrow}:${POSTGRES_PASSWORD:-arrow}@db:5432/${POSTGRES_DB:-arrow_license}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports:
+      - "${API_PORT:-9000}:9000"
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.seed_admin || true &&
+             uvicorn app.main:app --host 0.0.0.0 --port 9000"
+
 volumes:
-  arrow_platform_pgdata:
+  arrow_license_pgdata:
