@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import type { LicenseDevice } from "@/lib/types";
 import { Card, CardBody, CardHeader } from "@/components/ui";
+import { MobileListCard, MobileListRow } from "@/components/MobileList";
 import { fmtDate } from "@/lib/format";
 
 export default function DevicesPage() {
@@ -18,7 +19,7 @@ export default function DevicesPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Cihazlar</h1>
         <p className="text-slate-400">{rows.length} kayıt</p>
@@ -26,10 +27,33 @@ export default function DevicesPage() {
 
       {error ? <p className="text-red-400">{error}</p> : null}
 
-      <Card>
+      <div className="admin-mobile-only block space-y-3 md:hidden">
+        {rows.map((d) => (
+          <MobileListCard key={d.id}>
+            <MobileListRow label="Lisans">
+              {d.license_key ? (
+                <Link href={`/licenses/${encodeURIComponent(d.license_key)}`} className="break-license-key text-emerald-400">
+                  {d.license_key}
+                </Link>
+              ) : (
+                "—"
+              )}
+            </MobileListRow>
+            <MobileListRow label="Cihaz ID">
+              <span className="break-license-key font-mono text-xs">{d.device_id}</span>
+            </MobileListRow>
+            <MobileListRow label="Ad">{d.device_name}</MobileListRow>
+            <MobileListRow label="Sürüm">{d.app_version || "—"}</MobileListRow>
+            <MobileListRow label="Aktif">{d.is_active ? "Evet" : "Hayır"}</MobileListRow>
+            <MobileListRow label="Son görülme">{fmtDate(d.last_seen_at)}</MobileListRow>
+          </MobileListCard>
+        ))}
+      </div>
+
+      <Card className="admin-table-desktop admin-desktop-only hidden md:block">
         <CardHeader title="Tüm cihazlar" />
-        <CardBody className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+        <CardBody className="overflow-x-hidden p-0">
+          <table className="hidden w-full text-sm md:table">
             <thead className="border-b border-slate-800 text-left text-slate-400">
               <tr>
                 <th className="px-5 py-3">Lisans</th>
@@ -45,10 +69,7 @@ export default function DevicesPage() {
                 <tr key={d.id} className="border-b border-slate-800/80 hover:bg-slate-800/30">
                   <td className="px-5 py-3 font-mono text-xs">
                     {d.license_key ? (
-                      <Link
-                        href={`/licenses/${encodeURIComponent(d.license_key)}`}
-                        className="text-emerald-400 hover:underline"
-                      >
+                      <Link href={`/licenses/${encodeURIComponent(d.license_key)}`} className="break-license-key text-emerald-400 hover:underline">
                         {d.license_key}
                       </Link>
                     ) : (

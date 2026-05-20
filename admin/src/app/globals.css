@@ -5,9 +5,24 @@
   --foreground: #f1f5f9;
 }
 
+html {
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 input,
@@ -17,6 +32,96 @@ button {
   font: inherit;
 }
 
+@media (max-width: 767px) {
+  .admin-main input,
+  .admin-main select,
+  .admin-main textarea,
+  .admin-main button {
+    min-height: 44px;
+  }
+}
+
 table {
   border-collapse: collapse;
+}
+
+.break-license-key {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* ——— Admin mobil yedek (Tailwind md: ile birlikte) ——— */
+@media (max-width: 767px) {
+  .admin-layout-root {
+    flex-direction: column !important;
+  }
+
+  .admin-sidebar-desktop {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    border-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .admin-mobile-header-bar {
+    display: flex !important;
+  }
+
+  .admin-mobile-drawer-root {
+    /* drawer açıkken görünür; kapalıyken unmount */
+  }
+
+  .admin-desktop-only,
+  .admin-table-desktop {
+    display: none !important;
+  }
+
+  .admin-mobile-only {
+    display: block !important;
+  }
+
+  .admin-content-column {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+  }
+
+  .admin-main {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-layout-root {
+    flex-direction: row !important;
+  }
+
+  .admin-sidebar-desktop {
+    display: flex !important;
+  }
+
+  .admin-mobile-header-bar,
+  .admin-mobile-drawer-root {
+    display: none !important;
+  }
+
+  .admin-mobile-only {
+    display: none !important;
+  }
+
+  .admin-desktop-only {
+    display: block !important;
+  }
+
+  .admin-table-desktop {
+    display: block !important;
+  }
 }

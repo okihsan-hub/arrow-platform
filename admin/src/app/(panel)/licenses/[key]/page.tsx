@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api, licensePath } from "@/lib/api";
 import type { LicenseDetail } from "@/lib/types";
 import { Badge, Button, Card, CardBody, CardHeader, Input, Label, statusTone } from "@/components/ui";
+import { MobileListCard, MobileListRow } from "@/components/MobileList";
 import { fmtDate, fmtDateInput } from "@/lib/format";
 
 export default function LicenseDetailPage() {
@@ -59,17 +60,17 @@ export default function LicenseDetailPage() {
   if (!lic) return <p className="text-red-400">{error}</p>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-sm text-emerald-400">{lic.license_key}</p>
+    <div className="w-full space-y-6">
+      <div className="flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-start">
+        <div className="min-w-0">
+          <p className="break-license-key font-mono text-sm text-emerald-400">{lic.license_key}</p>
           <h1 className="text-2xl font-bold">{lic.customer_name}</h1>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge tone={statusTone(lic.status)}>{lic.status}</Badge>
             <Badge>{lic.plan}</Badge>
           </div>
         </div>
-        <Button variant="secondary" onClick={() => router.push("/licenses")}>
+        <Button variant="secondary" className="w-full md:w-auto" onClick={() => router.push("/licenses")}>
           Listeye dön
         </Button>
       </div>
@@ -77,7 +78,7 @@ export default function LicenseDetailPage() {
       {msg ? <p className="text-emerald-400">{msg}</p> : null}
       {error ? <p className="text-red-400">{error}</p> : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
           <CardHeader title="Özet" />
           <CardBody className="space-y-2 text-sm">
@@ -95,14 +96,14 @@ export default function LicenseDetailPage() {
 
         <Card>
           <CardHeader title="İşlemler" />
-          <CardBody className="flex flex-wrap gap-2">
-            <Button variant="secondary" disabled={busy} onClick={() => action("/suspend")}>
+          <CardBody className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button variant="secondary" className="w-full sm:w-auto" disabled={busy} onClick={() => action("/suspend")}>
               Askıya al
             </Button>
-            <Button variant="danger" disabled={busy} onClick={() => action("/cancel")}>
+            <Button variant="danger" className="w-full sm:w-auto" disabled={busy} onClick={() => action("/cancel")}>
               İptal et
             </Button>
-            <Button variant="secondary" disabled={busy} onClick={() => action("/reset-device")}>
+            <Button variant="secondary" className="w-full sm:w-auto" disabled={busy} onClick={() => action("/reset-device")}>
               Cihazları sıfırla
             </Button>
           </CardBody>
@@ -112,22 +113,22 @@ export default function LicenseDetailPage() {
       <Card>
         <CardHeader title="Yenile" />
         <CardBody>
-          <form onSubmit={onRenew} className="flex flex-wrap items-end gap-4">
-            <div>
+          <form onSubmit={onRenew} className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
+            <div className="w-full md:w-auto">
               <Label htmlFor="extend_days">Gün ekle</Label>
-              <Input id="extend_days" name="extend_days" type="number" min={1} placeholder="30" className="w-28" />
+              <Input id="extend_days" name="extend_days" type="number" min={1} placeholder="30" className="w-full md:w-28" />
             </div>
-            <div>
+            <div className="w-full md:w-auto">
               <Label htmlFor="expires_at">Yeni bitiş</Label>
               <Input
                 id="expires_at"
                 name="expires_at"
                 type="datetime-local"
                 defaultValue={fmtDateInput(lic.expires_at)}
-                className="w-56"
+                className="w-full md:w-56"
               />
             </div>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" className="w-full md:w-auto" disabled={busy}>
               Yenile
             </Button>
           </form>
@@ -136,8 +137,21 @@ export default function LicenseDetailPage() {
 
       <Card>
         <CardHeader title="Cihazlar" desc={`${lic.devices.length} kayıt`} />
-        <CardBody className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+        <div className="admin-mobile-only block space-y-3 p-4 md:hidden">
+          {lic.devices.map((d) => (
+            <MobileListCard key={d.id}>
+              <MobileListRow label="Cihaz ID">
+                <span className="break-license-key font-mono text-xs">{d.device_id}</span>
+              </MobileListRow>
+              <MobileListRow label="Ad">{d.device_name}</MobileListRow>
+              <MobileListRow label="Sürüm">{d.app_version || "—"}</MobileListRow>
+              <MobileListRow label="Aktif">{d.is_active ? "Evet" : "Hayır"}</MobileListRow>
+              <MobileListRow label="Son görülme">{fmtDate(d.last_seen_at)}</MobileListRow>
+            </MobileListCard>
+          ))}
+        </div>
+        <CardBody className="admin-table-desktop admin-desktop-only hidden overflow-x-hidden p-0 md:block">
+          <table className="hidden w-full text-sm md:table">
             <thead className="border-b border-slate-800 text-left text-slate-400">
               <tr>
                 <th className="px-5 py-3">Cihaz ID</th>
