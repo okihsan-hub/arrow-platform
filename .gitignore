@@ -1,22 +1,30 @@
-# Node
-node_modules/
-.next/
-dist/
-build/
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-venv/
-
 # Env
 .env
 .env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env.local
+frontend/.env.local.*
+admin/.env.local
+admin/.env.local.*
 
-# IDE
-.cursor/
-.vscode/
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/data/
+*.db
+
+# Node
+admin/node_modules/
+admin/.next/
+frontend/node_modules/
+frontend/.next/
+
+# Logs
+*.log
 
 # OS
 .DS_Store
