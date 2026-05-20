@@ -1,0 +1,238 @@
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from pathlib import Path
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+
+from app.config import get_settings
+from app.license_renew_utils import (
+    VALID_PERIODS,
+    compute_external_id,
+    extend_expires_for_period,
+    find_license_for_request,
+    mask_license_key,
+    parse_created_at,
+    parse_jsonl_line,
+)
+from app.license_utils import sync_license_expired_status, utcnow
+from app.models import (
+    AdminUser,
+    License,
+    LicenseRenewRequest,
+    LicenseRenewRequestStatus,
+    LicenseStatus,
+    utcnow as model_utcnow,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def default_jsonl_path() -> Path | None:
+    settings = get_settings()
+    if settings.license_renew_jsonl_path:
+        return Path(settings.license_renew_jsonl_path)
+    candidates = [
+        Path(__file__).resolve().parents[3] / "arrowrestaurant" / "backend" / "data" / "license_renew_requests.jsonl",
+        Path("C:/arrowrestaurant/backend/data/license_renew_requests.jsonl"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            return p
+    return None
+
+
+def sync_from_jsonl(db: Session, *, path: Path | None = None) -> dict[str, int]:
+    file_path = path or default_jsonl_path()
+    if file_path is None or not file_path.is_file():
+        return {"imported": 0, "skipped": 0, "errors": 0}
+
+    imported = skipped = errors = 0
+    with file_path.open(encoding="utf-8") as fh:
+        for line in fh:
+            record = parse_jsonl_line(line)
+            if not record:
+                if line.strip():
+                    errors += 1
+                continue
+            period = str(record.get("requested_period") or "").strip()
+            if period not in VALID_PERIODS:
+                errors += 1
+                continue
+            external_id = compute_external_id(record)
+            exists = db.scalar(
+                select(LicenseRenewRequest.id).where(LicenseRenewRequest.external_id == external_id)
+            )
+            if exists:
+                skipped += 1
+                continue
+
+            license_key = str(record.get("license_key") or "").strip().upper() or None
+            masked = str(record.get("license_key_masked") or "").strip() or None
+            if license_key and not masked:
+                masked = mask_license_key(license_key)
+
+            lic = find_license_for_request(
+                db,
+                license_key=license_key,
+                license_key_masked=masked,
+                customer_name=record.get("customer_name"),
+            )
+
+            row = LicenseRenewRequest(
+                external_id=external_id,
+                status=LicenseRenewRequestStatus.pending,
+                created_at=parse_created_at(record.get("created_at")),
+                requested_period=period,
+                requested_period_label=record.get("requested_period_label"),
+                note=str(record.get("note") or "").strip() or None,
+                contact_phone=str(record.get("contact_phone") or "").strip() or None,
+                license_key_masked=masked,
+                license_key=license_key,
+                license_id=lic.id if lic else None,
+                customer_name=str(record.get("customer_name") or "").strip() or None,
+                device_name=str(record.get("device_name") or "").strip() or None,
+                device_id=str(record.get("device_id") or "").strip() or None,
+                client_license_status=str(record.get("status") or "").strip() or None,
+                plan=str(record.get("plan") or "").strip() or None,
+            )
+            db.add(row)
+            imported += 1
+
+    if imported:
+        db.commit()
+    logger.info(
+        "[RENEW IMPORT] path=%s imported=%s skipped=%s errors=%s",
+        file_path,
+        imported,
+        skipped,
+        errors,
+    )
+    return {"imported": imported, "skipped": skipped, "errors": errors}
+
+
+def _status_rank(status: LicenseRenewRequestStatus) -> int:
+    if status == LicenseRenewRequestStatus.pending:
+        return 0
+    return 1
+
+
+def list_renew_requests(
+    db: Session,
+    *,
+    status_filter: str | None = None,
+) -> list[LicenseRenewRequest]:
+    sync_from_jsonl(db)
+    q = select(LicenseRenewRequest).options(
+        joinedload(LicenseRenewRequest.license).joinedload(License.customer)
+    )
+    if status_filter and status_filter != "all":
+        try:
+            st = LicenseRenewRequestStatus(status_filter)
+        except ValueError:
+            st = None
+        if st:
+            q = q.where(LicenseRenewRequest.status == st)
+    rows = list(db.scalars(q).all())
+    rows.sort(
+        key=lambda r: (
+            _status_rank(r.status),
+            -int(r.created_at.timestamp()) if r.created_at else 0,
+        )
+    )
+    return rows
+
+
+def get_renew_request(db: Session, request_id: int) -> LicenseRenewRequest | None:
+    sync_from_jsonl(db)
+    return db.scalar(
+        select(LicenseRenewRequest)
+        .options(joinedload(LicenseRenewRequest.license).joinedload(License.customer))
+        .where(LicenseRenewRequest.id == request_id)
+    )
+
+
+def _resolve_license(db: Session, req: LicenseRenewRequest) -> License | None:
+    if req.license_id:
+        lic = db.get(License, req.license_id)
+        if lic:
+            return lic
+    return find_license_for_request(
+        db,
+        license_key=req.license_key,
+        license_key_masked=req.license_key_masked,
+        customer_name=req.customer_name,
+    )
+
+
+def approve_renew_request(
+    db: Session,
+    request_id: int,
+    admin: AdminUser,
+) -> LicenseRenewRequest:
+    req = get_renew_request(db, request_id)
+    if req is None:
+        raise LookupError("request_not_found")
+    if req.status != LicenseRenewRequestStatus.pending:
+        raise ValueError("request_not_pending")
+
+    lic = _resolve_license(db, req)
+    if lic is None:
+        raise LookupError("license_not_found")
+    if lic.status == LicenseStatus.cancelled:
+        raise ValueError("license_cancelled")
+
+    now = utcnow()
+    try:
+        new_expires = extend_expires_for_period(lic.expires_at, req.requested_period, now=now)
+        lic.expires_at = new_expires
+        if lic.expires_at > now and lic.status in (LicenseStatus.expired, LicenseStatus.suspended):
+            lic.status = LicenseStatus.active
+        sync_license_expired_status(lic)
+        lic.updated_at = model_utcnow()
+
+        req.status = LicenseRenewRequestStatus.approved
+        req.license_id = lic.id
+        req.license_key = lic.license_key
+        req.processed_at = model_utcnow()
+        req.processed_by_admin_id = admin.id
+        db.add(lic)
+        db.add(req)
+        db.commit()
+        db.refresh(req)
+        db.refresh(lic)
+    except Exception:
+        db.rollback()
+        raise
+
+    logger.info(
+        "[RENEW APPROVE] request_id=%s license_id=%s period=%s masked=%s",
+        req.id,
+        lic.id,
+        req.requested_period,
+        mask_license_key(lic.license_key),
+    )
+    return req
+
+
+def reject_renew_request(
+    db: Session,
+    request_id: int,
+    admin: AdminUser,
+) -> LicenseRenewRequest:
+    req = get_renew_request(db, request_id)
+    if req is None:
+        raise LookupError("request_not_found")
+    if req.status != LicenseRenewRequestStatus.pending:
+        raise ValueError("request_not_pending")
+
+    req.status = LicenseRenewRequestStatus.rejected
+    req.processed_at = model_utcnow()
+    req.processed_by_admin_id = admin.id
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    logger.info("[RENEW REJECT] request_id=%s", req.id)
+    return req

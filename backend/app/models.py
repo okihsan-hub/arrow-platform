@@ -102,3 +102,40 @@ class LicenseDevice(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     license: Mapped["License"] = relationship(back_populates="devices")
+
+
+class LicenseRenewRequestStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class LicenseRenewRequest(Base):
+    __tablename__ = "license_renew_requests"
+    __table_args__ = (UniqueConstraint("external_id", name="uq_license_renew_external_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    external_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    status: Mapped[LicenseRenewRequestStatus] = mapped_column(
+        Enum(LicenseRenewRequestStatus, native_enum=False),
+        nullable=False,
+        default=LicenseRenewRequestStatus.pending,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    requested_period: Mapped[str] = mapped_column(String(32), nullable=False)
+    requested_period_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    contact_phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    license_key_masked: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    license_key: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    license_id: Mapped[int | None] = mapped_column(ForeignKey("licenses.id"), nullable=True, index=True)
+    customer_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    device_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    device_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    client_license_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    plan: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    processed_by_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admin_users.id"), nullable=True)
+
+    license: Mapped["License | None"] = relationship()

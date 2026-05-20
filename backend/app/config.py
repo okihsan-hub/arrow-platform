@@ -41,6 +41,12 @@ class Settings(BaseSettings):
 
     demo_license_days: int = Field(default=7, alias="DEMO_LICENSE_DAYS")
 
+    # Arrow Restaurant jsonl — süre uzatma talepleri (import)
+    license_renew_jsonl_path: str | None = Field(
+        default=None,
+        alias="LICENSE_RENEW_JSONL_PATH",
+    )
+
     # Startup'ta create_all — varsayılan kapalı (Postgres'te takılmayı önler)
     init_db_on_startup: bool = Field(default=False, alias="INIT_DB_ON_STARTUP")
 

@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models import AdminRole, LicensePlan, LicenseStatus
+from app.models import AdminRole, LicensePlan, LicenseRenewRequestStatus, LicenseStatus
 
 
 class MessageOut(BaseModel):
@@ -162,3 +162,29 @@ class LicenseValidateResponse(BaseModel):
     active_devices: int | None = None
     features: dict[str, Any] | list[Any] | None = None
     message: str
+
+
+# --- License renew requests (admin) ---
+
+
+class LicenseRenewRequestOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    external_id: str
+    status: LicenseRenewRequestStatus | str
+    created_at: datetime
+    requested_period: str
+    requested_period_label: str | None = None
+    note: str | None = None
+    contact_phone: str | None = None
+    license_key_masked: str | None = None
+    license_key: str | None = None
+    license_id: int | None = None
+    customer_name: str | None = None
+    device_name: str | None = None
+    device_id: str | None = None
+    client_license_status: str | None = None
+    plan: str | None = None
+    imported_at: datetime
+    processed_at: datetime | None = None

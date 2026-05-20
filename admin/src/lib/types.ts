@@ -53,3 +53,26 @@ export interface AdminUser {
   is_active: boolean;
   created_at: string;
 }
+
+export type LicenseRenewRequestStatus = "pending" | "approved" | "rejected";
+
+export interface LicenseRenewRequest {
+  id: number;
+  external_id: string;
+  status: LicenseRenewRequestStatus;
+  created_at: string;
+  requested_period: string;
+  requested_period_label: string | null;
+  note: string | null;
+  contact_phone: string | null;
+  license_key_masked: string | null;
+  license_key: string | null;
+  license_id: number | null;
+  customer_name: string | null;
+  device_name: string | null;
+  device_id: string | null;
+  client_license_status: string | null;
+  plan: string | null;
+  imported_at: string;
+  processed_at: string | null;
+}
