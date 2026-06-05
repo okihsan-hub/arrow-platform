@@ -5,5 +5,6 @@ export const adminNav: NavItem[] = [
   { href: "/customers", label: "Müşteriler" },
   { href: "/licenses", label: "Lisanslar" },
   { href: "/license-renew-requests", label: "Yenileme Talepleri" },
+  { href: "/license-requests", label: "Lisans Talepleri" },
   { href: "/devices", label: "Cihazlar" },
 ];

@@ -139,3 +139,52 @@ class LicenseRenewRequest(Base):
     processed_by_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admin_users.id"), nullable=True)
 
     license: Mapped["License | None"] = relationship()
+
+
+class LicenseRequestStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class DeploymentMode(str, enum.Enum):
+    server = "server"
+    client = "client"
+
+
+class LicenseRequest(Base):
+    __tablename__ = "license_requests"
+    __table_args__ = (UniqueConstraint("request_code", name="uq_license_request_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    request_code: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    status: Mapped[LicenseRequestStatus] = mapped_column(
+        Enum(LicenseRequestStatus, native_enum=False),
+        nullable=False,
+        default=LicenseRequestStatus.pending,
+    )
+    company_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    contact_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    contact_position: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[str] = mapped_column(String(64), nullable=False)
+    tax_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    machine_code: Mapped[str] = mapped_column(String(128), nullable=False)
+    device_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    deployment_mode: Mapped[DeploymentMode] = mapped_column(
+        Enum(DeploymentMode, native_enum=False), nullable=False
+    )
+    requested_plan: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    license_key: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by_admin_id: Mapped[int | None] = mapped_column(ForeignKey("admin_users.id"), nullable=True)
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+    customer: Mapped["Customer | None"] = relationship()

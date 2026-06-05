@@ -56,6 +56,32 @@ export interface AdminUser {
 
 export type LicenseRenewRequestStatus = "pending" | "approved" | "rejected";
 
+export type DeploymentMode = "server" | "client";
+
+export interface LicenseRequest {
+  id: number;
+  request_code: string;
+  status: LicenseRenewRequestStatus;
+  company_name: string;
+  contact_name: string;
+  contact_position: string | null;
+  email: string;
+  phone: string;
+  tax_number: string | null;
+  machine_code: string;
+  device_name: string;
+  app_version: string;
+  deployment_mode: DeploymentMode;
+  requested_plan: string | null;
+  notes: string | null;
+  license_key: string | null;
+  customer_id: number | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  reviewed_at: string | null;
+}
+
 export interface LicenseRenewRequest {
   id: number;
   external_id: string;

@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models import AdminRole, LicensePlan, LicenseRenewRequestStatus, LicenseStatus
+from app.models import AdminRole, DeploymentMode, LicensePlan, LicenseRenewRequestStatus, LicenseRequestStatus, LicenseStatus
 
 
 class MessageOut(BaseModel):
@@ -188,3 +188,60 @@ class LicenseRenewRequestOut(BaseModel):
     plan: str | None = None
     imported_at: datetime
     processed_at: datetime | None = None
+
+
+# --- License requests (public + admin) ---
+
+
+class LicenseRequestCreate(BaseModel):
+    company_name: str
+    contact_name: str
+    contact_position: str | None = None
+    email: EmailStr
+    phone: str
+    tax_number: str | None = None
+    machine_code: str
+    device_name: str
+    app_version: str
+    deployment_mode: DeploymentMode
+    requested_plan: LicensePlan | None = None
+    notes: str | None = None
+
+
+class LicenseRequestPublicResponse(BaseModel):
+    ok: bool
+    request_code: str | None = None
+    status: LicenseRequestStatus | str | None = None
+    license_key: str | None = None
+    rejection_reason: str | None = None
+    message: str
+
+
+class LicenseRequestReject(BaseModel):
+    rejection_reason: str
+
+
+class LicenseRequestOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    request_code: str
+    status: LicenseRequestStatus | str
+    company_name: str
+    contact_name: str
+    contact_position: str | None = None
+    email: str
+    phone: str
+    tax_number: str | None = None
+    machine_code: str
+    device_name: str
+    app_version: str
+    deployment_mode: DeploymentMode | str
+    requested_plan: str | None = None
+    notes: str | None = None
+    license_key: str | None = None
+    customer_id: int | None = None
+    rejection_reason: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    reviewed_at: datetime | None = None
