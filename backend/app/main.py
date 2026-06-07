@@ -10,6 +10,7 @@ from app.auth_routes import router as auth_router
 from app.config import cors_origins_list, get_settings
 from app.database import startup_database
 from app.startup_checks import run_startup_security_checks
+from app.license_renew_public_routes import public_router as license_renew_public_router
 from app.license_renew_routes import router as license_renew_router
 from app.license_request_routes import admin_router as license_request_admin_router
 from app.license_request_routes import public_router as license_request_public_router
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     api.include_router(devices_router)
     api.include_router(license_public_router)
     api.include_router(license_renew_router)
+    api.include_router(license_renew_public_router)
     api.include_router(license_request_public_router)
     api.include_router(license_request_admin_router)
 

@@ -167,6 +167,30 @@ class LicenseValidateResponse(BaseModel):
 # --- License renew requests (admin) ---
 
 
+class LicenseRenewRequestCreate(BaseModel):
+    external_id: str | None = Field(None, max_length=64)
+    requested_period: str = Field(..., min_length=1, max_length=32)
+    requested_period_label: str | None = Field(None, max_length=64)
+    note: str | None = None
+    contact_phone: str | None = Field(None, max_length=64)
+    license_key: str | None = Field(None, max_length=32)
+    license_key_masked: str | None = Field(None, max_length=64)
+    customer_name: str | None = Field(None, max_length=255)
+    device_name: str | None = Field(None, max_length=255)
+    device_id: str | None = Field(None, max_length=128)
+    client_license_status: str | None = Field(None, max_length=64)
+    plan: str | None = Field(None, max_length=64)
+    created_at: datetime | None = None
+
+
+class LicenseRenewRequestPublicResponse(BaseModel):
+    ok: bool
+    request_id: int | None = None
+    external_id: str
+    status: LicenseRenewRequestStatus | str
+    message: str
+
+
 class LicenseRenewRequestOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

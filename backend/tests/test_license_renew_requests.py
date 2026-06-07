@@ -208,3 +208,47 @@ def test_reject_changes_status(client: TestClient, tmp_path: Path, monkeypatch: 
 def test_list_requires_auth(client: TestClient):
     res = client.get("/api/admin/license-renew-requests")
     assert res.status_code == 401
+
+
+def test_public_renew_request_post(client: TestClient):
+    payload = {
+        "external_id": "renew-ext-public-001",
+        "requested_period": "1_year",
+        "requested_period_label": "1 yıl",
+        "note": "Cloud test",
+        "contact_phone": "05551234567",
+        "license_key": "AR-PUBLIC-RENEW-TEST01",
+        "license_key_masked": "AR-P****ST01",
+        "customer_name": "Public Renew Co",
+        "device_name": "Kasa-1",
+        "device_id": "dev-public-renew-1",
+        "client_license_status": "active",
+        "plan": "standard",
+    }
+    res1 = client.post("/api/public/license-renew-requests", json=payload)
+    assert res1.status_code == 201, res1.text
+    body1 = res1.json()
+    assert body1["ok"] is True
+    assert body1["external_id"] == payload["external_id"]
+    assert body1["status"] == "pending"
+
+    res2 = client.post("/api/public/license-renew-requests", json=payload)
+    assert res2.status_code == 201, res2.text
+    assert res2.json()["request_id"] == body1["request_id"]
+
+    db = SessionLocal()
+    try:
+        row = db.scalar(
+            select(LicenseRenewRequest).where(
+                LicenseRenewRequest.external_id == payload["external_id"]
+            )
+        )
+        assert row is not None
+    finally:
+        db.close()
+
+    headers = _auth_header(client)
+    admin = client.get("/api/admin/license-renew-requests", headers=headers)
+    assert admin.status_code == 200
+    ids = {row["external_id"] for row in admin.json()}
+    assert payload["external_id"] in ids

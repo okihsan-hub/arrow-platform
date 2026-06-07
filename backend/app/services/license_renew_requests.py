@@ -119,6 +119,65 @@ def _status_rank(status: LicenseRenewRequestStatus) -> int:
     return 1
 
 
+def create_renew_request_public(db: Session, data: dict[str, Any]) -> tuple[LicenseRenewRequest, bool]:
+    """POS/restaurant süre uzatma talebi — external_id ile idempotent."""
+    period = str(data.get("requested_period") or "").strip()
+    if period not in VALID_PERIODS:
+        raise ValueError("invalid_requested_period")
+
+    external_id = str(data.get("external_id") or "").strip() or compute_external_id(data)
+    external_id = external_id[:64]
+
+    existing = db.scalar(
+        select(LicenseRenewRequest).where(LicenseRenewRequest.external_id == external_id)
+    )
+    if existing is not None:
+        return existing, False
+
+    license_key = str(data.get("license_key") or "").strip().upper() or None
+    masked = str(data.get("license_key_masked") or "").strip() or None
+    if license_key and not masked:
+        masked = mask_license_key(license_key)
+
+    lic = find_license_for_request(
+        db,
+        license_key=license_key,
+        license_key_masked=masked,
+        customer_name=data.get("customer_name"),
+    )
+
+    row = LicenseRenewRequest(
+        external_id=external_id,
+        status=LicenseRenewRequestStatus.pending,
+        created_at=parse_created_at(data.get("created_at")),
+        requested_period=period,
+        requested_period_label=str(data.get("requested_period_label") or "").strip()
+        or PERIOD_LABELS.get(period, period),
+        note=str(data.get("note") or "").strip() or None,
+        contact_phone=str(data.get("contact_phone") or "").strip() or None,
+        license_key_masked=masked,
+        license_key=license_key,
+        license_id=lic.id if lic else None,
+        customer_name=str(data.get("customer_name") or "").strip() or None,
+        device_name=str(data.get("device_name") or "").strip() or None,
+        device_id=str(data.get("device_id") or "").strip() or None,
+        client_license_status=str(data.get("client_license_status") or data.get("status") or "").strip()
+        or None,
+        plan=str(data.get("plan") or "").strip() or None,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    logger.info(
+        "[RENEW PUBLIC] created id=%s external_id=%s period=%s customer=%s",
+        row.id,
+        row.external_id[:12],
+        row.requested_period,
+        row.customer_name or "-",
+    )
+    return row, True
+
+
 def list_renew_requests(
     db: Session,
     *,
