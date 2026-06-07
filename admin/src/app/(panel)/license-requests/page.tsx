@@ -86,7 +86,7 @@ export default function LicenseRequestsPage() {
     setError("");
     setSuccess("");
     try {
-      await api<LicenseRequest>(`/admin/license-requests/${id}/approve`, { method: "POST" });
+      await api<LicenseRequest>(`/admin/license-requests/${id}/approve-create-license`, { method: "POST" });
       setSuccess("Talep onaylandı; lisans oluşturuldu.");
       await load();
       if (detailId === id) await openDetail(id);
@@ -189,7 +189,7 @@ export default function LicenseRequestsPage() {
                 {r.status === "pending" ? (
                   <div className="grid grid-cols-2 gap-2">
                     <Button className="min-h-11 w-full" disabled={busyId === r.id} onClick={() => approve(r.id)}>
-                      Onayla
+                      Onayla ve Lisans Olustur
                     </Button>
                     <Button
                       variant="danger"
@@ -259,7 +259,7 @@ export default function LicenseRequestsPage() {
                       {r.status === "pending" ? (
                         <>
                           <Button disabled={busyId === r.id} onClick={() => approve(r.id)}>
-                            Onayla
+                            Onayla ve Lisans Olustur
                           </Button>
                           <Button
                             variant="danger"
@@ -371,7 +371,7 @@ export default function LicenseRequestsPage() {
               <div className="space-y-3 pt-2">
                 <div className="flex flex-wrap gap-2">
                   <Button disabled={busyId === detail.id} onClick={() => approve(detail.id)}>
-                    Onayla
+                    Onayla ve Lisans Olustur
                   </Button>
                   <Button
                     variant="danger"

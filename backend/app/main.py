@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth_routes import router as auth_router
 from app.config import cors_origins_list, get_settings
 from app.database import startup_database
+from app.startup_checks import run_startup_security_checks
 from app.license_renew_routes import router as license_renew_router
 from app.license_request_routes import admin_router as license_request_admin_router
 from app.license_request_routes import public_router as license_request_public_router
@@ -44,6 +45,9 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
+    run_startup_security_checks(settings)
+
     app = FastAPI(
         title="Arrow Bilişim License Platform",
         description="Lisans yönetimi — license.arrowbilisim.com",

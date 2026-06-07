@@ -221,6 +221,10 @@ class LicenseRequestReject(BaseModel):
     rejection_reason: str
 
 
+class LicenseRequestUpdate(BaseModel):
+    status: LicenseRequestStatus | None = None
+
+
 class LicenseRequestOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

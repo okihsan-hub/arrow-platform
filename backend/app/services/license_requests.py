@@ -137,6 +137,58 @@ def get_license_request(db: Session, request_id: int) -> LicenseRequest | None:
     )
 
 
+def resolve_public_request_status(
+    db: Session,
+    req: LicenseRequest,
+) -> tuple[str, str | None]:
+    """
+    Public status — orphan APPROVED (lisans yok) dead-end'i önler.
+    Dönüş: (public_status, license_key veya None)
+    """
+    if req.status == LicenseRequestStatus.pending:
+        return LicenseRequestStatus.pending.value, None
+    if req.status == LicenseRequestStatus.rejected:
+        return LicenseRequestStatus.rejected.value, None
+    if req.status == LicenseRequestStatus.approved:
+        key = str(req.license_key or "").strip()
+        if not key:
+            logger.warning(
+                "[LICENSE REQUEST STATUS] orphan approved without license_key code=%s id=%s",
+                req.request_code,
+                req.id,
+            )
+            return LicenseRequestStatus.pending.value, None
+        lic = db.scalar(select(License).where(License.license_key == key))
+        if lic is None:
+            logger.warning(
+                "[LICENSE REQUEST STATUS] orphan approved missing license row code=%s key=%s",
+                req.request_code,
+                key[:8],
+            )
+            return LicenseRequestStatus.pending.value, None
+        return LicenseRequestStatus.approved.value, key
+    st = req.status.value if hasattr(req.status, "value") else str(req.status)
+    return st, None
+
+
+def update_license_request(
+    db: Session,
+    request_id: int,
+    admin: AdminUser,
+    *,
+    status: LicenseRequestStatus | None = None,
+) -> LicenseRequest:
+    _ = admin
+    req = get_license_request(db, request_id)
+    if req is None:
+        raise LookupError("request_not_found")
+    if status is None:
+        raise ValueError("no_updatable_fields")
+    if status == LicenseRequestStatus.approved:
+        raise ValueError("approved_requires_create_license")
+    raise ValueError("status_update_not_supported")
+
+
 def _resolve_plan(requested: str | None) -> LicensePlan:
     if requested:
         try:

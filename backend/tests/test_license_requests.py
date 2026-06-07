@@ -6,13 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.config import get_settings
-from app.database import Base, SessionLocal, engine, init_db
-from app.main import create_app
+from app.database import SessionLocal
 from app.models import AdminRole, AdminUser, Customer, License, LicensePlan, LicenseRequest, LicenseStatus
-from app.security import hash_password
-
-get_settings.cache_clear()
 
 PAYLOAD = {
     "company_name": "Yeni Restoran A.Ş.",
@@ -28,40 +23,6 @@ PAYLOAD = {
     "requested_plan": "demo",
     "notes": "İlk kurulum talebi",
 }
-
-
-@pytest.fixture(scope="module", autouse=True)
-def setup_db():
-    from pathlib import Path
-
-    data_dir = Path(__file__).resolve().parent.parent / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    db_file = data_dir / "test_platform.db"
-    if db_file.exists():
-        db_file.unlink()
-    Base.metadata.drop_all(bind=engine)
-    init_db()
-    db = SessionLocal()
-    try:
-        db.add(
-            AdminUser(
-                email="test-admin@arrowbilisim.com",
-                password_hash=hash_password("TestAdmin123!"),
-                full_name="Test Admin",
-                role=AdminRole.super_admin,
-                is_active=True,
-            )
-        )
-        db.commit()
-    finally:
-        db.close()
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture()
-def client():
-    return TestClient(create_app())
 
 
 def _auth_header(client: TestClient) -> dict[str, str]:

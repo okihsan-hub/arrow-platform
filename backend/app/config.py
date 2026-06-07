@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     # Startup'ta create_all — varsayılan kapalı (Postgres'te takılmayı önler)
     init_db_on_startup: bool = Field(default=False, alias="INIT_DB_ON_STARTUP")
 
+    app_env: str = Field(default="development", alias="APP_ENV")
+    license_hmac_secret: str = Field(
+        default="change-me-insecure-default-hmac-secret",
+        alias="LICENSE_HMAC_SECRET",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

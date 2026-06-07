@@ -12,6 +12,7 @@ from app.schemas import (
     LicenseRequestOut,
     LicenseRequestPublicResponse,
     LicenseRequestReject,
+    LicenseRequestUpdate,
 )
 from app.security import get_current_admin
 from app.services import license_requests as request_service
@@ -84,12 +85,12 @@ def get_license_request_status(
     if err == "machine_code_mismatch":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cihaz doğrulaması başarısız")
     assert req is not None
-    st = req.status.value if hasattr(req.status, "value") else str(req.status)
+    public_status, license_key = request_service.resolve_public_request_status(db, req)
     return LicenseRequestPublicResponse(
         ok=True,
         request_code=req.request_code,
-        status=st,
-        license_key=req.license_key if req.status == LicenseRequestStatus.approved else None,
+        status=public_status,
+        license_key=license_key,
         rejection_reason=req.rejection_reason if req.status == LicenseRequestStatus.rejected else None,
         message="Talep durumu",
     )
@@ -123,11 +124,42 @@ def get_license_request(
     return _to_out(req)
 
 
-@admin_router.post("/{request_id}/approve", response_model=LicenseRequestOut)
-def approve_license_request(
+@admin_router.patch("/{request_id}", response_model=LicenseRequestOut)
+def patch_license_request(
     request_id: int,
+    body: LicenseRequestUpdate,
     db: Annotated[Session, Depends(get_db)],
     admin: Annotated[AdminUser, Depends(get_current_admin)],
+) -> LicenseRequestOut:
+    fields = body.model_fields_set
+    if not fields:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Güncellenecek alan yok")
+    try:
+        req = request_service.update_license_request(
+            db,
+            request_id,
+            admin,
+            status=body.status if "status" in fields else None,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Talep bulunamadı") from exc
+    except ValueError as exc:
+        msg = str(exc)
+        if msg == "approved_requires_create_license":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Onay için approve-create-license endpoint'ini kullanın; PATCH ile onaylanamaz.",
+            ) from exc
+        if msg == "no_updatable_fields":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Güncellenecek alan yok") from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return _to_out(req)
+
+
+def _approve_create_license_handler(
+    request_id: int,
+    db: Session,
+    admin: AdminUser,
 ) -> LicenseRequestOut:
     try:
         req = request_service.approve_license_request(db, request_id, admin)
@@ -138,6 +170,24 @@ def approve_license_request(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Talep zaten işlenmiş") from exc
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return _to_out(req)
+
+
+@admin_router.post("/{request_id}/approve", response_model=LicenseRequestOut)
+def approve_license_request(
+    request_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    admin: Annotated[AdminUser, Depends(get_current_admin)],
+) -> LicenseRequestOut:
+    return _approve_create_license_handler(request_id, db, admin)
+
+
+@admin_router.post("/{request_id}/approve-create-license", response_model=LicenseRequestOut)
+def approve_create_license(
+    request_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    admin: Annotated[AdminUser, Depends(get_current_admin)],
+) -> LicenseRequestOut:
+    return _approve_create_license_handler(request_id, db, admin)
 
 
 @admin_router.post("/{request_id}/reject", response_model=LicenseRequestOut)
