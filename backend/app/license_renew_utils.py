@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.license_utils import ensure_aware, utcnow
-from app.models import License
+from app.models import License, LicenseDevice
 
 logger = logging.getLogger(__name__)
 
@@ -97,54 +97,106 @@ def _masked_prefix_suffix(masked: str) -> tuple[str, str] | None:
     return left[:4], right[-4:]
 
 
+def _license_company_name(lic: License) -> str:
+    try:
+        customer = lic.customer
+        if customer is None:
+            return ""
+        return str(customer.company_name or "").strip()
+    except Exception:
+        return ""
+
+
+def find_license_by_device_id(db: Session, device_id: str | None) -> License | None:
+    dev_id = str(device_id or "").strip()
+    if not dev_id:
+        return None
+    try:
+        dev = db.scalar(
+            select(LicenseDevice)
+            .where(LicenseDevice.device_id == dev_id, LicenseDevice.is_active.is_(True))
+            .order_by(LicenseDevice.last_seen_at.desc(), LicenseDevice.id.desc())
+            .limit(1)
+        )
+        if dev is None:
+            return None
+        lic = db.get(License, dev.license_id)
+        if lic is None:
+            return None
+        logger.info(
+            "[RENEW REQUEST] matched license by device_id=%s license_id=%s",
+            dev_id[:12],
+            lic.id,
+        )
+        return lic
+    except Exception as exc:
+        logger.warning("[RENEW REQUEST] device lookup failed device_id=%s err=%s", dev_id[:12], exc)
+        return None
+
+
 def find_license_for_request(
     db: Session,
     *,
     license_key: str | None,
     license_key_masked: str | None,
     customer_name: str | None,
+    device_id: str | None = None,
 ) -> License | None:
-    key = str(license_key or "").strip().upper()
-    if key:
-        lic = db.scalar(select(License).where(License.license_key == key))
-        if lic:
-            return lic
-
-    parts = _masked_prefix_suffix(license_key_masked or "")
-    if not parts:
-        return None
-    prefix, suffix = parts
-    candidates = list(
-        db.scalars(
-            select(License)
-            .where(License.license_key.like(f"{prefix}%"))
-            .order_by(License.id.desc())
-        ).all()
-    )
-    company = str(customer_name or "").strip().casefold()
-    matched: list[License] = []
-    for lic in candidates:
-        if not lic.license_key.upper().endswith(suffix):
-            continue
-        if mask_license_key(lic.license_key) != str(license_key_masked or "").strip().upper():
-            continue
-        matched.append(lic)
-
-    if not matched:
-        return None
-    if len(matched) == 1:
-        return matched[0]
-    if company:
-        for lic in matched:
-            name = (lic.customer.company_name if lic.customer else "") or ""
-            if name.casefold() == company:
+    try:
+        key = str(license_key or "").strip().upper()
+        if key:
+            lic = db.scalar(select(License).where(License.license_key == key))
+            if lic:
                 return lic
-    logger.warning(
-        "[RENEW REQUEST] ambiguous license match count=%s masked=%s",
-        len(matched),
-        license_key_masked,
-    )
-    return matched[0]
+
+        parts = _masked_prefix_suffix(license_key_masked or "")
+        if not parts:
+            return find_license_by_device_id(db, device_id)
+        prefix, suffix = parts
+        candidates = list(
+            db.scalars(
+                select(License)
+                .options(joinedload(License.customer))
+                .where(License.license_key.like(f"{prefix}%"))
+                .order_by(License.id.desc())
+            ).all()
+        )
+        company = str(customer_name or "").strip().casefold()
+        matched: list[License] = []
+        masked_upper = str(license_key_masked or "").strip().upper()
+        for lic in candidates:
+            lic_key = str(lic.license_key or "").strip().upper()
+            if not lic_key.endswith(suffix):
+                continue
+            if mask_license_key(lic_key) != masked_upper:
+                continue
+            matched.append(lic)
+
+        if not matched:
+            return find_license_by_device_id(db, device_id)
+        if len(matched) == 1:
+            return matched[0]
+        if company:
+            for lic in matched:
+                if _license_company_name(lic).casefold() == company:
+                    return lic
+        by_device = find_license_by_device_id(db, device_id)
+        if by_device is not None and by_device in matched:
+            return by_device
+        logger.warning(
+            "[RENEW REQUEST] ambiguous license match count=%s masked=%s",
+            len(matched),
+            license_key_masked,
+        )
+        return matched[0]
+    except Exception as exc:
+        logger.warning(
+            "[RENEW REQUEST] license lookup failed masked=%s device_id=%s err=%s",
+            license_key_masked,
+            str(device_id or "")[:12] or "-",
+            exc,
+        )
+        return find_license_by_device_id(db, device_id)
 
 
 def parse_jsonl_line(line: str) -> dict[str, Any] | None:
