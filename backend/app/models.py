@@ -188,3 +188,22 @@ class LicenseRequest(Base):
     )
 
     customer: Mapped["Customer | None"] = relationship()
+
+
+class UpdateRelease(Base):
+    __tablename__ = "update_releases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    app_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    version: Mapped[str] = mapped_column(String(64), nullable=False)
+    channel: Mapped[str] = mapped_column(String(32), nullable=False, default="stable")
+    force_update: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    min_supported_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    download_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sha256: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    release_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
+    )
