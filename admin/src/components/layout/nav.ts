@@ -7,4 +7,5 @@ export const adminNav: NavItem[] = [
   { href: "/license-renew-requests", label: "Yenileme Talepleri" },
   { href: "/license-requests", label: "Lisans Talepleri" },
   { href: "/devices", label: "Cihazlar" },
+  { href: "/updates", label: "Update Management" },
 ];

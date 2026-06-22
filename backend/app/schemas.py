@@ -273,3 +273,47 @@ class LicenseRequestOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     reviewed_at: datetime | None = None
+
+
+# --- Update releases (admin) ---
+
+
+class UpdateReleaseCreate(BaseModel):
+    app_name: str = Field(min_length=1, max_length=128)
+    version: str = Field(min_length=1, max_length=64)
+    channel: str = Field(default="stable", max_length=32)
+    force_update: bool = False
+    min_supported_version: str = Field(min_length=1, max_length=64)
+    download_url: str = ""
+    sha256: str = ""
+    release_notes: str = ""
+    is_active: bool = True
+
+
+class UpdateReleaseUpdate(BaseModel):
+    app_name: str | None = Field(default=None, min_length=1, max_length=128)
+    version: str | None = Field(default=None, min_length=1, max_length=64)
+    channel: str | None = Field(default=None, max_length=32)
+    force_update: bool | None = None
+    min_supported_version: str | None = Field(default=None, min_length=1, max_length=64)
+    download_url: str | None = None
+    sha256: str | None = None
+    release_notes: str | None = None
+    is_active: bool | None = None
+
+
+class UpdateReleaseOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    app_name: str
+    version: str
+    channel: str
+    force_update: bool
+    min_supported_version: str
+    download_url: str | None
+    sha256: str | None
+    release_notes: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
