@@ -360,3 +360,11 @@ class UpdateReleaseOut(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class UpdateReleaseUploadOut(BaseModel):
+    uploaded: bool = True
+    file_name: str
+    file_size_bytes: int
+    sha256: str
+    download_url: str

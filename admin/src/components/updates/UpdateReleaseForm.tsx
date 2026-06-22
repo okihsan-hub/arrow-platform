@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, type ChangeEvent } from "react";
 import type { ReleaseStatus, UpdateRelease, UpdateReleaseInput } from "@/api/updates";
 import { Button, Card, CardBody, CardHeader, Input, Label, Select, Textarea } from "@/components/ui";
 
@@ -30,6 +30,7 @@ type Props = {
   onDraftSave: (body: UpdateReleaseInput) => Promise<void>;
   onPublish: (body: UpdateReleaseInput) => Promise<void>;
   onArchive: (releaseId: number) => Promise<void>;
+  onUpload: (file: File) => Promise<void>;
 };
 
 export function UpdateReleaseForm({
@@ -39,8 +40,10 @@ export function UpdateReleaseForm({
   onDraftSave,
   onPublish,
   onArchive,
+  onUpload,
 }: Props) {
   const [form, setForm] = useState<UpdateReleaseInput>(EMPTY_FORM);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     if (!editing) {
@@ -64,6 +67,18 @@ export function UpdateReleaseForm({
   async function handleDraftSave(e: FormEvent) {
     e.preventDefault();
     await onDraftSave(form);
+  }
+
+  async function handlePackageUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    try {
+      await onUpload(file);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Yükleme başarısız");
+    }
   }
 
   const currentStatus: ReleaseStatus = editing?.release_status ?? "draft";
@@ -123,28 +138,38 @@ export function UpdateReleaseForm({
               required
             />
           </div>
+          <div className="md:col-span-2 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+            <Label htmlFor="package_file">Paket Dosyası Yükle</Label>
+            <p className="mb-2 text-xs text-slate-500">
+              Önce draft kaydedin, ardından .exe yükleyin. SHA256, boyut ve download URL otomatik doldurulur.
+            </p>
+            <Input
+              id="package_file"
+              type="file"
+              accept=".exe,application/x-msdownload,application/octet-stream"
+              disabled={!editing || busy || currentStatus === "archived"}
+              onChange={handlePackageUpload}
+            />
+            {uploadError ? <p className="mt-2 text-sm text-red-400">{uploadError}</p> : null}
+          </div>
           <div>
             <Label htmlFor="uploaded_file_name">Uploaded File Name</Label>
             <Input
               id="uploaded_file_name"
               value={form.uploaded_file_name}
-              onChange={(e) => setForm((f) => ({ ...f, uploaded_file_name: e.target.value }))}
-              placeholder="ArrowRestaurant-1.0.2-setup.exe"
+              readOnly
+              className="bg-slate-900 text-slate-300"
+              placeholder="Yükleme sonrası dolar"
             />
           </div>
           <div>
             <Label htmlFor="file_size_bytes">File Size (bytes)</Label>
             <Input
               id="file_size_bytes"
-              type="number"
-              min={0}
               value={form.file_size_bytes ?? ""}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  file_size_bytes: e.target.value === "" ? null : Number(e.target.value),
-                }))
-              }
+              readOnly
+              className="bg-slate-900 text-slate-300"
+              placeholder="Yükleme sonrası dolar"
             />
           </div>
           <div>
@@ -152,7 +177,9 @@ export function UpdateReleaseForm({
             <Input
               id="download_url"
               value={form.download_url}
-              onChange={(e) => setForm((f) => ({ ...f, download_url: e.target.value }))}
+              readOnly
+              className="bg-slate-900 font-mono text-xs text-slate-300"
+              placeholder="Yükleme sonrası dolar"
             />
           </div>
           <div>
@@ -160,9 +187,9 @@ export function UpdateReleaseForm({
             <Input
               id="sha256"
               value={form.sha256}
-              onChange={(e) => setForm((f) => ({ ...f, sha256: e.target.value }))}
-              placeholder="64 karakter hex"
-              className="font-mono text-xs"
+              readOnly
+              className="bg-slate-900 font-mono text-xs text-slate-300"
+              placeholder="Yükleme sonrası dolar"
             />
           </div>
           <div>

@@ -1,23 +1,33 @@
-"""Public update metadata + admin release management (Faz 2A–3)."""
+"""Public update metadata + admin release management (Faz 2A–4)."""
 from __future__ import annotations
 
+import hashlib
+import os
+import re
+from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import AdminUser, ReleaseStatus, UpdateRelease, utcnow
-from app.schemas import UpdateReleaseCreate, UpdateReleaseOut, UpdateReleaseUpdate
+from app.schemas import UpdateReleaseCreate, UpdateReleaseOut, UpdateReleaseUpdate, UpdateReleaseUploadOut
 from app.security import get_current_admin
+
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent
+STORAGE_UPDATES_ROOT = _BACKEND_ROOT / "storage" / "updates"
+UPDATES_PUBLIC_BASE_URL = os.environ.get(
+    "UPDATES_PUBLIC_BASE_URL",
+    "https://updates.arrowbilisim.com",
+).rstrip("/")
 
 _public_updates = APIRouter(tags=["updates"])
 _admin_updates = APIRouter(tags=["updates-admin"])
 
 DbSession = Annotated[Session, Depends(get_db)]
 AdminAuth = Annotated[AdminUser, Depends(get_current_admin)]
-
 
 def _public_release(db: Session, app_name: str, channel: str) -> UpdateRelease | None:
     return db.scalar(
@@ -64,6 +74,34 @@ def _get_release_or_404(db: Session, release_id: int) -> UpdateRelease:
     if release is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Release not found")
     return release
+
+
+def _safe_exe_filename(name: str) -> str:
+    base = Path(name).name
+    if not base or base in (".", ".."):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file name")
+    safe = re.sub(r"[^\w.\-]", "_", base)
+    if not safe.lower().endswith(".exe"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only .exe package files are allowed")
+    return safe
+
+
+def _release_storage_dir(release: UpdateRelease) -> Path:
+    return STORAGE_UPDATES_ROOT / release.app_name.strip() / release.channel.strip()
+
+
+def _build_download_url(release: UpdateRelease, file_name: str) -> str:
+    app = release.app_name.strip()
+    channel = release.channel.strip() or "stable"
+    return f"{UPDATES_PUBLIC_BASE_URL}/{app}/{channel}/{file_name}"
+
+
+def _require_package_before_publish(release: UpdateRelease) -> None:
+    if not release.uploaded_file_name or not release.download_url or not release.sha256:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Package file required before publish",
+        )
 
 
 def _apply_package_fields(release: UpdateRelease, body: UpdateReleaseCreate | UpdateReleaseUpdate) -> None:
@@ -227,6 +265,8 @@ def publish_update_release(
             detail="Archived releases cannot be published",
         )
 
+    _require_package_before_publish(release)
+
     _deactivate_other_published_active(
         db,
         release.app_name,
@@ -239,6 +279,62 @@ def publish_update_release(
     db.commit()
     db.refresh(release)
     return release
+
+
+@_admin_updates.post("/releases/{release_id}/upload", response_model=UpdateReleaseUploadOut)
+async def upload_release_package(
+    release_id: int,
+    db: DbSession,
+    _: AdminAuth,
+    file: UploadFile = File(...),
+) -> UpdateReleaseUploadOut:
+    release = _get_release_or_404(db, release_id)
+    if release.release_status == ReleaseStatus.archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Archived releases cannot accept uploads",
+        )
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required")
+
+    file_name = _safe_exe_filename(file.filename)
+    dest_dir = _release_storage_dir(release)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = dest_dir / file_name
+
+    digest = hashlib.sha256()
+    size = 0
+    try:
+        with dest_path.open("wb") as out:
+            while chunk := await file.read(1024 * 1024):
+                size += len(chunk)
+                digest.update(chunk)
+                out.write(chunk)
+    except OSError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to store package file",
+        ) from exc
+    finally:
+        await file.close()
+
+    sha256 = digest.hexdigest()
+    download_url = _build_download_url(release, file_name)
+
+    release.uploaded_file_name = file_name
+    release.file_size_bytes = size
+    release.sha256 = sha256
+    release.download_url = download_url
+    db.commit()
+    db.refresh(release)
+
+    return UpdateReleaseUploadOut(
+        uploaded=True,
+        file_name=file_name,
+        file_size_bytes=size,
+        sha256=sha256,
+        download_url=download_url,
+    )
 
 
 @_admin_updates.post("/releases/{release_id}/archive", response_model=UpdateReleaseOut)

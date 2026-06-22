@@ -1,4 +1,5 @@
-import { api } from "@/lib/api";
+import { clearToken, getToken } from "@/lib/auth";
+import { api, API_BASE, ApiError } from "@/lib/api";
 
 export type ReleaseStatus = "draft" | "published" | "archived";
 
@@ -34,6 +35,25 @@ export interface UpdateReleaseInput {
   file_size_bytes: number | null;
 }
 
+export interface UpdateReleaseUploadResult {
+  uploaded: boolean;
+  file_name: string;
+  file_size_bytes: number;
+  sha256: string;
+  download_url: string;
+}
+
+async function parseApiError(res: Response): Promise<string> {
+  let detail = res.statusText;
+  try {
+    const body = await res.json();
+    if (typeof body.detail === "string") detail = body.detail;
+  } catch {
+    /* ignore */
+  }
+  return detail;
+}
+
 export function listUpdateReleases() {
   return api<UpdateRelease[]>("/admin/updates/releases");
 }
@@ -58,6 +78,33 @@ export function publishUpdateRelease(id: number) {
 
 export function archiveUpdateRelease(id: number) {
   return api<UpdateRelease>(`/admin/updates/releases/${id}/archive`, { method: "POST" });
+}
+
+export async function uploadUpdateReleasePackage(id: number, file: File): Promise<UpdateReleaseUploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${API_BASE}/admin/updates/releases/${id}/upload`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") window.location.href = "/login";
+    throw new ApiError("Oturum geçersiz", 401);
+  }
+
+  if (!res.ok) {
+    throw new ApiError(await parseApiError(res), res.status);
+  }
+
+  return res.json() as Promise<UpdateReleaseUploadResult>;
 }
 
 export function fmtFileSize(bytes: number | null | undefined) {

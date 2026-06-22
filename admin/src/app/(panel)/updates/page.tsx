@@ -8,6 +8,7 @@ import {
   listUpdateReleases,
   publishUpdateRelease,
   updateUpdateRelease,
+  uploadUpdateReleasePackage,
   type ReleaseStatus,
   type UpdateRelease,
   type UpdateReleaseInput,
@@ -110,6 +111,32 @@ export default function UpdateManagementPage() {
     }
   }
 
+  async function handleUpload(file: File) {
+    if (!editing) {
+      throw new Error("Önce draft kaydedin.");
+    }
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const uploaded = await uploadUpdateReleasePackage(editing.id, file);
+      setEditing({
+        ...editing,
+        uploaded_file_name: uploaded.file_name,
+        file_size_bytes: uploaded.file_size_bytes,
+        sha256: uploaded.sha256,
+        download_url: uploaded.download_url,
+      });
+      setSuccess(`Paket yüklendi: ${uploaded.file_name}`);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Yükleme başarısız");
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="w-full space-y-6">
       <div>
@@ -124,6 +151,7 @@ export default function UpdateManagementPage() {
         onDraftSave={handleDraftSave}
         onPublish={handlePublish}
         onArchive={handleArchive}
+        onUpload={handleUpload}
       />
 
       {success ? (
