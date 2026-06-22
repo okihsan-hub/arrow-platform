@@ -1,11 +1,34 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.models import AdminRole, DeploymentMode, LicensePlan, LicenseRenewRequestStatus, LicenseRequestStatus, LicenseStatus
+from app.models import (
+    AdminRole,
+    DeploymentMode,
+    LicensePlan,
+    LicenseRenewRequestStatus,
+    LicenseRequestStatus,
+    LicenseStatus,
+    ReleaseStatus,
+)
+
+SHA256_PATTERN = re.compile(r"^[a-fA-F0-9]{64}$")
+ReleaseStatusLiteral = Literal["draft", "published", "archived"]
+
+
+def _normalize_sha256(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    if not stripped:
+        return None
+    if not SHA256_PATTERN.match(stripped):
+        raise ValueError("SHA256 must be 64 hexadecimal characters")
+    return stripped.lower()
 
 
 class MessageOut(BaseModel):
@@ -287,7 +310,14 @@ class UpdateReleaseCreate(BaseModel):
     download_url: str = ""
     sha256: str = ""
     release_notes: str = ""
-    is_active: bool = True
+    uploaded_file_name: str = ""
+    file_size_bytes: int | None = Field(default=None, ge=0)
+
+    @field_validator("sha256")
+    @classmethod
+    def validate_sha256(cls, value: str) -> str:
+        normalized = _normalize_sha256(value)
+        return normalized or ""
 
 
 class UpdateReleaseUpdate(BaseModel):
@@ -299,7 +329,16 @@ class UpdateReleaseUpdate(BaseModel):
     download_url: str | None = None
     sha256: str | None = None
     release_notes: str | None = None
-    is_active: bool | None = None
+    uploaded_file_name: str | None = None
+    file_size_bytes: int | None = Field(default=None, ge=0)
+    release_status: ReleaseStatusLiteral | None = None
+
+    @field_validator("sha256")
+    @classmethod
+    def validate_sha256(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_sha256(value)
 
 
 class UpdateReleaseOut(BaseModel):
@@ -314,6 +353,10 @@ class UpdateReleaseOut(BaseModel):
     download_url: str | None
     sha256: str | None
     release_notes: str | None
+    uploaded_file_name: str | None
+    file_size_bytes: int | None
+    release_status: ReleaseStatus | str
+    published_at: datetime | None
     is_active: bool
     created_at: datetime
     updated_at: datetime

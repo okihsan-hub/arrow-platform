@@ -190,6 +190,12 @@ class LicenseRequest(Base):
     customer: Mapped["Customer | None"] = relationship()
 
 
+class ReleaseStatus(str, enum.Enum):
+    draft = "draft"
+    published = "published"
+    archived = "archived"
+
+
 class UpdateRelease(Base):
     __tablename__ = "update_releases"
 
@@ -202,7 +208,15 @@ class UpdateRelease(Base):
     download_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     sha256: Mapped[str | None] = mapped_column(String(128), nullable=True)
     release_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    file_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    uploaded_file_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    release_status: Mapped[ReleaseStatus] = mapped_column(
+        Enum(ReleaseStatus, native_enum=False),
+        default=ReleaseStatus.draft,
+        nullable=False,
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
