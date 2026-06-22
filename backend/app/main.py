@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.auth_routes import router as auth_router
 from app.config import cors_origins_list, get_settings
@@ -83,6 +85,16 @@ def create_app() -> FastAPI:
 
     app.include_router(api)
     logger.info("[STARTUP DONE] application factory complete")
+
+    backend_root = Path(__file__).resolve().parent.parent
+    updates_dir = backend_root / "storage" / "updates"
+    updates_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/storage/updates",
+        StaticFiles(directory=str(updates_dir)),
+        name="storage_updates",
+    )
+
     return app
 
 
