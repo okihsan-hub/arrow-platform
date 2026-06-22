@@ -18,6 +18,7 @@ from app.license_routes import admin_router as license_admin_router
 from app.license_routes import customer_router
 from app.license_routes import devices_router
 from app.license_routes import public_router as license_public_router
+from app.update_routes import public_router as update_public_router
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
     api.include_router(license_renew_public_router)
     api.include_router(license_request_public_router)
     api.include_router(license_request_admin_router)
+    api.include_router(update_public_router)
 
     @api.get("/health")
     def health() -> dict[str, str]:
